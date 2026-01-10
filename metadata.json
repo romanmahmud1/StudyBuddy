@@ -1,0 +1,8 @@
+{
+  "name": "StudyBuddy - আপনার পড়াশোনার বন্ধু",
+  "description": "সহজ ভাষায় পড়াশোনা বোঝা, ইংরেজি শেখা এবং অংক সমাধানের জন্য একটি বিশেষ এআই অ্যাপ।",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
