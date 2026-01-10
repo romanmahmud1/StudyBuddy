@@ -43,7 +43,7 @@ import {
   Image as ImageIcon,
   Maximize
 } from 'lucide-react';
-import { AppMode, UserProfile, HelpMessage, AdminProfile, StudyLink } from './types';
+import { AppMode, UserProfile, HelpMessage, AdminProfile, StudyLink } from './types.ts';
 import { 
   getStudyExplanation, 
   solveMath, 
@@ -53,7 +53,7 @@ import {
   checkDailyGoal,
   getSpeech,
   getSpellingCorrection
-} from './geminiService';
+} from './geminiService.ts';
 
 // Audio Utils
 function decodeBase64(base64: string) {
