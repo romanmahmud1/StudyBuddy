@@ -60,5 +60,6 @@ export enum AppMode {
   GOAL = 'GOAL',
   PROFILE = 'PROFILE',
   SPELLING = 'SPELLING',
-  AUTH = 'AUTH'
+  AUTH = 'AUTH',
+  SCRIPT_WRITER = 'SCRIPT_WRITER'
 }

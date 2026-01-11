@@ -166,3 +166,19 @@ export const checkDailyGoal = async (input: string) => {
   });
   return response.text;
 };
+
+// Generates a script (speech, video script, play) based on topic and language
+export const getScriptContent = async (topic: string, lang: 'bn' | 'en') => {
+  const prompt = lang === 'bn'
+    ? `টপিক: "${topic}"। এই টপিকটির ওপর একটি চমৎকার স্ক্রিপ্ট লেখো বাংলা ভাষায়। এটি হতে পারে কোনো বক্তব্য (Speech), ইউটিউব ভিডিওর চিত্রনাট্য (YouTube Script) বা ছোট নাটকের অংশ। খুব সাবলীল ভাষায় এবং আকর্ষণীয়ভাবে লেখো। শুরুতে অবশ্যই "আসসালামু আলাইকুম" বলবে।`
+    : `Topic: "${topic}". Write an excellent script on this topic in English. It could be a Speech, a YouTube Video Script, or a Short Play segment. Write it in an engaging and creative way. Start with the Bengali greeting "আসসালামু আলাইকুম" but write the rest in English.`;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: prompt,
+    config: {
+      systemInstruction: "You are a creative scriptwriter and content creator. You help students write speeches, video scripts, and presentations. Always provide high-quality, structured content. MANDATORY: Start every response with the Bengali greeting 'আসসালামু আলাইকুম'."
+    }
+  });
+  return response.text;
+};

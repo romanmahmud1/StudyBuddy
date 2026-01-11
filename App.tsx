@@ -44,9 +44,10 @@ import {
   Key,
   Info,
   Type,
-  // Added Eye and EyeOff to fix errors on line 809
   Eye,
-  EyeOff
+  EyeOff,
+  PenLine,
+  FileText
 } from 'lucide-react';
 import { AppMode, UserProfile, HelpMessage, AdminProfile, StudyLink, Notice } from './types';
 import { 
@@ -57,7 +58,8 @@ import {
   getQA,
   checkDailyGoal,
   getSpeech,
-  getSpellingCorrection
+  getSpellingCorrection,
+  getScriptContent
 } from './geminiService';
 
 // Audio Utils
@@ -162,7 +164,7 @@ const MenuButton: React.FC<{
   icon: React.ReactNode;
   title: string;
   desc: string;
-  color: 'blue' | 'purple' | 'green' | 'orange' | 'pink' | 'indigo' | 'cyan' | 'rose';
+  color: 'blue' | 'purple' | 'green' | 'orange' | 'pink' | 'indigo' | 'cyan' | 'rose' | 'amber';
   onClick: () => void;
 }> = ({ icon, title, desc, color, onClick }) => {
   const colorClasses = {
@@ -174,6 +176,7 @@ const MenuButton: React.FC<{
     indigo: "bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-indigo-100",
     cyan: "bg-cyan-50 text-cyan-600 hover:bg-cyan-100 border-cyan-100",
     rose: "bg-rose-50 text-rose-600 hover:bg-rose-100 border-rose-100",
+    amber: "bg-amber-50 text-amber-600 hover:bg-amber-100 border-amber-100",
   }[color];
 
   return (
@@ -390,9 +393,10 @@ const App: React.FC = () => {
           <MenuButton icon={<Calculator size={28} />} title="অংক সমাধানকারী" color="purple" desc="অংকের উত্তর ও ব্যাখ্যা" onClick={() => changeMode(AppMode.MATH)} />
           <MenuButton icon={<Languages size={28} />} title="অনুবাদ ও উচ্চারণ" color="green" desc="ভাষা পরিবর্তন করে শেখা" onClick={() => changeMode(AppMode.SPEAKING)} />
           <MenuButton icon={<HelpCircle size={28} />} title="প্রশ্ন ও উত্তর" color="orange" desc="যেকোনো শিক্ষামূলক প্রশ্ন" onClick={() => changeMode(AppMode.QA)} />
+          <MenuButton icon={<PenLine size={28} />} title="স্ক্রিপ্ট লিখে নাও" color="rose" desc="চমৎকার চিত্রনাট্য তৈরি করো" onClick={() => changeMode(AppMode.SCRIPT_WRITER)} />
           <MenuButton icon={<MessageCircle size={28} />} title="এআই বন্ধু চ্যাট" color="pink" desc="ইংরেজি প্র্যাকটিস করো" onClick={() => changeMode(AppMode.FRIEND_CHAT)} />
-          <MenuButton icon={<MessageSquare size={28} />} title="হেল্প লাইন চ্যাট" color="indigo" desc="সরাসরি সাপোর্ট নাও" onClick={() => changeMode(AppMode.HELP_LINE)} />
           <MenuButton icon={<Type size={28} />} title="সঠিক বানান শিখুন" color="cyan" desc="ভুল বানান চেক করো" onClick={() => changeMode(AppMode.SPELLING)} />
+          <MenuButton icon={<MessageSquare size={28} />} title="হেল্প লাইন চ্যাট" color="indigo" desc="সরাসরি সাপোর্ট নাও" onClick={() => changeMode(AppMode.HELP_LINE)} />
         </div>
 
         <button onClick={() => changeMode(AppMode.GOAL)} className="w-full bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-900 p-8 rounded-[40px] text-white shadow-2xl flex items-center justify-between group hover:scale-[1.01] transition-all border-b-8 border-indigo-900 active:border-b-0 active:translate-y-1">
@@ -451,6 +455,7 @@ const App: React.FC = () => {
         {mode === AppMode.SPELLING && <SpellingView setLoading={setLoading} />}
         {mode === AppMode.SPEAKING && <SpeakingView setLoading={setLoading} />}
         {mode === AppMode.QA && <QAView setLoading={setLoading} />}
+        {mode === AppMode.SCRIPT_WRITER && <ScriptWriterView setLoading={setLoading} />}
         {mode === AppMode.FRIEND_CHAT && <FriendChatView setLoading={setLoading} />}
         {mode === AppMode.HELP_LINE && <HelpLineView helpMessages={helpMessages} setHelpMessages={setHelpMessages} userId={currentUser?.id || 'guest'} userName={currentUser?.name || 'User'} isAdmin={isAdmin} adminName={adminProfile.name} />}
         {mode === AppMode.ADMIN && <AdminPanel isAdmin={isAdmin} setIsAdmin={setIsAdmin} setMode={changeMode} helpMessages={helpMessages} setHelpMessages={setHelpMessages} adminProfile={adminProfile} setAdminProfile={setAdminProfile} notices={notices} setNotices={setNotices} studyLinks={studyLinks} setStudyLinks={setStudyLinks} homeBanner={homeBanner} setHomeBanner={setHomeBanner} homeBannerSize={homeBannerSize} setHomeBannerSize={setHomeBannerSize} allUsers={allUsers} setAllUsers={setAllUsers} />}
@@ -464,7 +469,6 @@ const App: React.FC = () => {
   );
 };
 
-// ... AuthView and Utilities stay the same as previous large version ...
 const AuthView: React.FC<{ onLogin: (user: UserProfile) => void; users: UserProfile[]; setAllUsers: React.Dispatch<React.SetStateAction<UserProfile[]>>; }> = ({ onLogin, users, setAllUsers }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState('');
@@ -539,15 +543,12 @@ const MathView = ({ setLoading }: any) => {
   const [result, setResult] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => setImage(reader.result as string); reader.readAsDataURL(file); } };
-  const handleSubmit = async () => { if (!input.trim() && !image) return; setLoading(true); setResult(null); try { const base64Data = image ? image.split(',')[1] : undefined; const res = await solveMath(input, base64Data); setResult(res || 'দুঃখিত!'); } catch (e) { setResult('ভুল হয়েছে।'); } finally { setLoading(false); } };
+  const handleSubmit = async () => { if (!input.trim() && !image) return; setLoading(true); try { const base64Data = image ? image.split(',')[1] : undefined; const res = await solveMath(input, base64Data); setResult(res || 'দুঃখিত!'); } catch (e) { setResult('ভুল হয়েছে।'); } finally { setLoading(false); } };
   return (
     <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6 animate-in slide-up"><div className="flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-4 bg-purple-50 rounded-3xl text-purple-600"><Calculator size={32} /></div><h2 className="text-2xl font-black text-slate-800">অংক সমাধানকারী</h2></div><div className="flex gap-2"><STTButton onResult={setInput} /><button onClick={() => fileInputRef.current?.click()} className="p-3 bg-slate-50 rounded-2xl shadow-sm border border-slate-100 text-slate-400 hover:text-indigo-600 transition-all"><Camera size={20} /></button><input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} /></div></div>{image && <ImagePreview image={image} onClear={() => setImage(null)} />}<textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none min-h-[150px] font-bold shadow-inner" placeholder="অংক..." value={input} onChange={e => setInput(e.target.value)} /><button onClick={handleSubmit} className="w-full bg-purple-600 text-white py-5 rounded-3xl font-black shadow-xl flex items-center justify-center gap-3 text-xl hover:bg-purple-700 transition-colors border-b-4 border-purple-900 active:border-b-0 active:translate-y-1"><Calculator size={20} /> সমাধান করো</button>{result && <div className="p-8 bg-purple-50/50 rounded-[32px] border-2 border-purple-100 whitespace-pre-wrap leading-relaxed shadow-sm font-medium animate-in slide-up relative"><div className="absolute top-4 right-4"><CopyButton text={result} /></div>{result}</div>}</div>
   );
 };
 
-/**
- * SpeakingView (Reverted to Toggle Mode)
- */
 const SpeakingView = ({ setLoading }: any) => {
   const [input, setInput] = useState('');
   const [direction, setDirection] = useState<'bn-en' | 'en-bn'>('bn-en');
@@ -663,281 +664,333 @@ const QAView = ({ setLoading }: any) => {
   );
 };
 
+const ScriptWriterView = ({ setLoading }: any) => {
+  const [input, setInput] = useState('');
+  const [lang, setLang] = useState<'bn' | 'en'>('bn');
+  const [result, setResult] = useState<string | null>(null);
+  const [copyStatus, setCopyStatus] = useState('পুরো স্ক্রিপ্ট কপি করো');
+
+  const handleSubmit = async () => {
+    if (!input.trim()) return;
+    setLoading(true);
+    try {
+      const res = await getScriptContent(input, lang);
+      setResult(res || 'দুঃখিত, স্ক্রিপ্ট তৈরি করা যায়নি।');
+    } catch (e) {
+      setResult('ভুল হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCopyAll = () => {
+    if (!result) return;
+    navigator.clipboard.writeText(result);
+    setCopyStatus('কপি করা হয়েছে!');
+    setTimeout(() => setCopyStatus('পুরো স্ক্রিপ্ট কপি করো'), 2000);
+  };
+
+  return (
+    <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6 animate-in slide-up">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="p-4 bg-rose-50 rounded-3xl text-rose-600 border border-rose-100 shadow-inner">
+            <PenLine size={32} />
+          </div>
+          <h2 className="text-2xl font-black text-slate-800 tracking-tight">স্ক্রিপ্ট লিখে নাও</h2>
+        </div>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => setLang('bn')} 
+            className={`px-4 py-2 rounded-xl font-black text-xs transition-all ${lang === 'bn' ? 'bg-rose-600 text-white shadow-md' : 'bg-slate-50 text-slate-400 hover:text-rose-600'}`}
+          >
+            বাংলা
+          </button>
+          <button 
+            onClick={() => setLang('en')} 
+            className={`px-4 py-2 rounded-xl font-black text-xs transition-all ${lang === 'en' ? 'bg-rose-600 text-white shadow-md' : 'bg-slate-50 text-slate-400 hover:text-rose-600'}`}
+          >
+            English
+          </button>
+        </div>
+      </div>
+      <div className="relative">
+        <textarea 
+          className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none min-h-[180px] font-bold shadow-inner text-slate-700" 
+          placeholder="কোন টপিক বা বিষয়ের ওপর স্ক্রিপ্ট চান তা এখানে লিখুন..." 
+          value={input} 
+          onChange={e => setInput(e.target.value)} 
+        />
+        <div className="absolute bottom-4 right-4">
+          <STTButton onResult={setInput} lang={lang === 'bn' ? 'bn-BD' : 'en-US'} />
+        </div>
+      </div>
+      <button 
+        onClick={handleSubmit} 
+        disabled={!input.trim()}
+        className="w-full bg-rose-600 text-white py-5 rounded-3xl font-black shadow-xl text-xl flex items-center justify-center gap-3 hover:bg-rose-700 transition-colors border-b-4 border-rose-900 active:border-b-0 active:translate-y-1 disabled:opacity-50"
+      >
+        <FileText size={20} /> স্ক্রিপ্ট তৈরি করো
+      </button>
+      {result && (
+        <div className="p-8 bg-rose-50/50 rounded-[32px] border-2 border-rose-100 relative animate-in slide-up space-y-4">
+          <div className="flex justify-between items-center">
+            <span className="text-[10px] font-black uppercase text-rose-400 tracking-widest">তৈরিকৃত স্ক্রিপ্ট</span>
+            <CopyButton text={result} />
+          </div>
+          <div className="whitespace-pre-wrap leading-relaxed font-medium text-slate-700 bg-white/50 p-6 rounded-2xl border border-rose-50 shadow-inner">{result}</div>
+          <button 
+            onClick={handleCopyAll}
+            className="w-full py-4 bg-white border-2 border-rose-200 rounded-2xl text-rose-600 font-black text-sm hover:bg-rose-50 transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95"
+          >
+            <Copy size={18} /> {copyStatus}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const FriendChatView = ({ setLoading }: any) => {
   const [input, setInput] = useState('');
-  const [chatLog, setChatLog] = useState<{sender: 'user' | 'ai', text: string}[]>([{ sender: 'ai', text: 'আসসালামু আলাইকুম! Hello! I am your AI Study Friend. Let\'s practice English! (চলো ইংরেজি প্র্যাকটিস করি!)' }]);
-  const handleSubmit = async () => { if (!input.trim()) return; const userMsg = input; setInput(''); setChatLog(prev => [...prev, { sender: 'user', text: userMsg }]); setLoading(true); try { const history = chatLog.map(msg => ({ role: msg.sender === 'user' ? 'user' : 'model', parts: [{ text: msg.text }] })); const res = await chatWithAiFriend(history, userMsg); setChatLog(prev => [...prev, { sender: 'ai', text: res || 'I see!' }]); } catch (e) { setChatLog(prev => [...prev, { sender: 'ai', text: 'Confusion!' }]); } finally { setLoading(false); } };
+  const [messages, setMessages] = useState<{ role: 'user' | 'model', parts: [{ text: string }] }[]>([]);
+
+  const handleSubmit = async () => {
+    if (!input.trim()) return;
+    const userMsg: { role: 'user', parts: [{ text: string }] } = { role: 'user', parts: [{ text: input }] };
+    setMessages(prev => [...prev, userMsg]);
+    setInput('');
+    setLoading(true);
+    try {
+      const history = messages.map(m => ({ role: m.role, parts: m.parts }));
+      const response = await chatWithAiFriend(history, input);
+      setMessages(prev => [...prev, { role: 'model', parts: [{ text: response || '' }] }]);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="bg-white rounded-[48px] shadow-xl flex flex-col h-[600px] overflow-hidden border border-slate-100 animate-in slide-up"><div className="p-6 border-b bg-gradient-to-r from-pink-500 to-rose-500 text-white flex items-center justify-between"><div className="flex items-center gap-4"><div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center font-black shadow-sm">AI</div><h3 className="font-black">এআই বন্ধু</h3></div><STTButton onResult={setInput} lang="en-US" /></div><div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/50 custom-scrollbar">{chatLog.map((msg, i) => (<div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-up`}><div className={`max-w-[85%] p-4 rounded-[24px] font-bold text-sm shadow-sm ${msg.sender === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'}`}>{msg.text}</div></div>))}</div><div className="p-6 bg-white border-t flex gap-3 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]"><input className="flex-1 bg-slate-100 border-none rounded-2xl px-6 py-4 outline-none font-bold shadow-inner" placeholder="ইংরেজিতে লিখুন..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} /><button onClick={handleSubmit} className="bg-pink-500 text-white p-4 rounded-2xl hover:bg-pink-600 active:scale-90 shadow-lg transition-all"><Send size={24} /></button></div></div>
+    <div className="bg-white p-6 rounded-[40px] shadow-sm border border-slate-100 flex flex-col h-[600px] animate-in slide-up">
+      <div className="flex items-center gap-4 mb-6 shrink-0">
+        <div className="p-4 bg-pink-50 rounded-3xl text-pink-600"><MessageCircle size={32} /></div>
+        <h2 className="text-2xl font-black text-slate-800">এআই বন্ধু চ্যাট</h2>
+      </div>
+      <div className="flex-1 overflow-y-auto space-y-4 mb-6 p-2">
+        {messages.length === 0 && (
+          <div className="text-center py-12 text-slate-400 font-bold italic">
+            "হাই! আমি তোমার স্টাডিবাডি। আমার সাথে ইংরেজিতে কথা বলো, আমি তোমার ভুল শুধরে দেবো!"
+          </div>
+        )}
+        {messages.map((m, i) => (
+          <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[80%] p-4 rounded-3xl font-bold shadow-sm ${m.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-50 text-slate-700 rounded-tl-none border border-slate-100'}`}>
+              {m.parts[0].text}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-2 shrink-0">
+        <input 
+          className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold" 
+          placeholder="ইংরেজি প্র্যাকটিস করো..." 
+          value={input} 
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+        />
+        <STTButton onResult={setInput} lang="en-US" />
+        <button onClick={handleSubmit} className="p-4 bg-pink-600 text-white rounded-2xl shadow-lg hover:bg-pink-700 transition-all"><Send size={20} /></button>
+      </div>
+    </div>
   );
 };
 
 const HelpLineView = ({ helpMessages, setHelpMessages, userId, userName, isAdmin, adminName }: any) => {
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
-  
+
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight);
   }, [helpMessages]);
 
-  const handleSendMessage = () => { if (!input.trim()) return; setHelpMessages((prev: any) => [...prev, { id: Date.now().toString(), userId, userName: isAdmin ? adminName : userName, text: input, timestamp: Date.now(), isAdmin }]); setInput(''); };
-  
+  const handleSend = () => {
+    if (!input.trim()) return;
+    const newMessage: HelpMessage = {
+      id: Date.now().toString(),
+      userId,
+      userName: isAdmin ? adminName : userName,
+      text: input,
+      timestamp: Date.now(),
+      isAdmin
+    };
+    setHelpMessages([...helpMessages, newMessage]);
+    setInput('');
+  };
+
+  const filteredMessages = isAdmin ? helpMessages : helpMessages.filter((m: HelpMessage) => m.userId === userId);
+
   return (
-    <div className="bg-white rounded-[48px] shadow-xl flex flex-col h-[600px] overflow-hidden border border-slate-100 animate-in slide-up">
-      <div className="p-6 border-b bg-indigo-600 text-white flex items-center justify-between shadow-md">
-        <div className="flex items-center gap-3"><MessageCircle size={24} /><h3 className="font-black">হেল্প লাইন চ্যাট</h3></div>
-        <STTButton onResult={setInput} />
+    <div className="bg-white p-6 rounded-[40px] shadow-sm border border-slate-100 flex flex-col h-[600px] animate-in slide-up">
+      <div className="flex items-center gap-4 mb-6 shrink-0">
+        <div className="p-4 bg-indigo-50 rounded-3xl text-indigo-600"><MessageSquare size={32} /></div>
+        <h2 className="text-2xl font-black text-slate-800">হেল্প লাইন</h2>
       </div>
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/30 custom-scrollbar">
-        {helpMessages.filter((m: any) => isAdmin || m.userId === userId).map((msg: any) => (
-          <div key={msg.id} className={`flex ${msg.isAdmin === isAdmin ? 'justify-end' : 'justify-start'} animate-in slide-up`}>
-            <div className={`max-w-[85%] p-4 rounded-[24px] font-bold text-sm shadow-sm ${msg.isAdmin === isAdmin ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'}`}>
-              <div className="text-[9px] font-black opacity-60 mb-1 uppercase tracking-tighter">{msg.userName}</div>
-              {msg.text}
-            </div>
+      <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-4 mb-6 p-2">
+        {filteredMessages.map((m: HelpMessage) => (
+          <div key={m.id} className={`flex flex-col ${m.isAdmin === isAdmin ? 'items-end' : 'items-start'}`}>
+             <span className="text-[10px] font-black text-slate-400 mb-1 px-2">{m.userName}</span>
+             <div className={`max-w-[80%] p-4 rounded-3xl font-bold shadow-sm ${m.isAdmin === isAdmin ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-50 text-slate-700 rounded-tl-none border border-slate-100'}`}>
+                {m.text}
+             </div>
           </div>
         ))}
-        {helpMessages.filter((m: any) => isAdmin || m.userId === userId).length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-slate-300 opacity-60 italic text-center px-10">
-            <div className="p-6 bg-slate-100 rounded-full mb-4"><MessageSquare size={48} /></div>
-            <p className="font-bold">এডমিনের সাথে সরাসরি কথা বলতে মেসেজ লিখুন।</p>
-          </div>
-        )}
       </div>
-      <div className="p-6 bg-white border-t flex gap-3 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
-        <input className="flex-1 bg-slate-100 rounded-2xl px-6 py-4 outline-none font-bold shadow-inner" placeholder="এখানে মেসেজ লিখুন..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendMessage()} />
-        <button onClick={handleSendMessage} className="bg-indigo-600 text-white p-4 rounded-2xl hover:bg-indigo-700 active:scale-90 shadow-lg transition-all"><Send size={24} /></button>
+      <div className="flex gap-2 shrink-0">
+        <input className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold" placeholder="আপনার সমস্যাটি লিখুন..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSend()} />
+        <button onClick={handleSend} className="p-4 bg-indigo-600 text-white rounded-2xl shadow-lg hover:bg-indigo-700 transition-all"><Send size={20} /></button>
       </div>
     </div>
   );
 };
 
 const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessages, adminProfile, setAdminProfile, notices, setNotices, studyLinks, setStudyLinks, homeBanner, setHomeBanner, homeBannerSize, setHomeBannerSize, allUsers, setAllUsers }: any) => {
-  const [id, setId] = useState('');
-  const [pass, setPass] = useState('');
-  const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'messages' | 'notice' | 'links' | 'banner'>('dashboard');
+  const [password, setPassword] = useState('');
+  const [isUnlocked, setIsUnlocked] = useState(isAdmin);
   const [noticeInput, setNoticeInput] = useState('');
-  const [publishMsg, setPublishMsg] = useState<string | null>(null);
-  const [visiblePass, setVisiblePass] = useState<Record<string, boolean>>({});
-  const bannerRef = useRef<HTMLInputElement>(null);
-  const [linkT, setLinkT] = useState('');
-  const [linkU, setLinkU] = useState('');
+  const [linkTitle, setLinkTitle] = useState('');
+  const [linkUrl, setLinkUrl] = useState('');
 
-  // Admin Chat State
-  const [selectedChatUserId, setSelectedChatUserId] = useState<string | null>(null);
-  const [adminReplyInput, setAdminReplyInput] = useState('');
-
-  const handleLogin = () => (id === 'romantechgp@gmail.com' || id === '01617365471') && pass === '13457@Hunter' ? setIsAdmin(true) : setError('ভুল অ্যাডমিন তথ্য!');
-  const handleAddNotice = () => { if (!noticeInput.trim() || notices.length >= 3) return; setNotices([{ id: Date.now().toString(), text: noticeInput, timestamp: Date.now() }, ...notices]); setNoticeInput(''); setPublishMsg('নোটিশ আপডেটেড!'); setTimeout(() => setPublishMsg(null), 3000); };
-  const handleBanner = (e: any) => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onloadend = () => { setHomeBanner(r.result as string); setPublishMsg('ব্যানার আপডেটেড!'); setTimeout(() => setPublishMsg(null), 3000); }; r.readAsDataURL(f); } };
-  const handleAddLink = () => { if (!linkT.trim() || !linkU.trim()) return; setStudyLinks([{ id: Date.now().toString(), title: linkT, url: linkU, date: new Date().toLocaleDateString() }, ...studyLinks]); setLinkT(''); setLinkU(''); setPublishMsg('লিঙ্ক অ্যাডেড!'); setTimeout(() => setPublishMsg(null), 3000); };
-  
-  const handleResetPassword = (userId: string) => {
-    const newPassword = window.prompt("এই ইউজারটির জন্য নতুন একটি পাসওয়ার্ড লিখুন:");
-    if (newPassword && newPassword.trim()) {
-      setAllUsers((prev: UserProfile[]) => prev.map(u => u.id === userId ? { ...u, password: newPassword.trim() } : u));
-      setPublishMsg("ইউজারের পাসওয়ার্ড সফলভাবে আপডেট করা হয়েছে!");
-      setTimeout(() => setPublishMsg(null), 3000);
+  const handleUnlock = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password === 'admin123') {
+      setIsUnlocked(true);
+      setIsAdmin(true);
+    } else {
+      alert('ভুল পাসওয়ার্ড!');
     }
   };
 
-  const sendAdminReply = () => {
-    if (!adminReplyInput.trim() || !selectedChatUserId) return;
-    setHelpMessages((prev: HelpMessage[]) => [...prev, {
-      id: Date.now().toString(),
-      userId: selectedChatUserId,
-      userName: adminProfile.name,
-      text: adminReplyInput,
-      timestamp: Date.now(),
-      isAdmin: true
-    }]);
-    setAdminReplyInput('');
-  };
-
-  const conversationGroups = useMemo(() => {
-    const groups: Record<string, { lastMessage: HelpMessage, count: number, userName: string }> = {};
-    helpMessages.forEach((m: HelpMessage) => {
-      if (!groups[m.userId] || m.timestamp > groups[m.userId].lastMessage.timestamp) {
-        let userName = m.userName;
-        if (m.isAdmin) {
-          const userMsg = helpMessages.find(hm => hm.userId === m.userId && !hm.isAdmin);
-          if (userMsg) userName = userMsg.userName;
-        }
-        groups[m.userId] = { lastMessage: m, count: (groups[m.userId]?.count || 0) + 1, userName: userName };
-      } else {
-        groups[m.userId].count++;
-      }
-    });
-    return Object.entries(groups).sort((a, b) => b[1].lastMessage.timestamp - a[1].lastMessage.timestamp);
-  }, [helpMessages]);
-
-  if (isAdmin) {
-    const totalPoints = allUsers.reduce((a: number, u: any) => a + u.points, 0);
-    const challengesToday = allUsers.reduce((a: number, u: any) => a + u.dailyChallengeCount, 0);
+  if (!isUnlocked) {
     return (
-      <div className="space-y-6 animate-in zoom-in">
-        <div className="bg-red-50 border-l-8 border-red-500 p-6 rounded-2xl shadow-sm"><h4 className="text-red-700 font-black">অ্যাডমিন মোড: রিমন মাহমুদ রোমান</h4></div>
-        <div className="bg-white p-6 rounded-[32px] shadow-sm flex gap-2 overflow-x-auto no-scrollbar border border-slate-100">
-          {['dashboard', 'users', 'messages', 'notice', 'links', 'banner'].map((t: any) => (
-            <button key={t} onClick={() => { setActiveTab(t); if(t !== 'messages') setSelectedChatUserId(null); }} className={`px-5 py-2 rounded-xl font-black text-xs uppercase tracking-widest whitespace-nowrap transition-all ${activeTab === t ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}>{t}</button>
-          ))}
-          <button onClick={() => setIsAdmin(false)} className="bg-red-50 text-red-600 px-5 py-2 rounded-xl font-black text-xs uppercase ml-auto hover:bg-red-100 transition-colors">LOGOUT</button>
-        </div>
-        {publishMsg && <div className="bg-green-50 text-green-700 p-4 rounded-xl border border-green-200 font-bold animate-in zoom-in">{publishMsg}</div>}
-
-        {activeTab === 'dashboard' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 animate-in slide-up">
-            <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-2"><div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shadow-inner"><Users size={20} /></div><p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">মোট ইউজার</p><p className="text-3xl font-black text-slate-800">{allUsers.length}</p></div>
-            <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-2"><div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center shadow-inner"><Zap size={20} /></div><p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">আজকের লক্ষ্য</p><p className="text-3xl font-black text-slate-800">{challengesToday}</p></div>
-            <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-2"><div className="w-10 h-10 bg-yellow-50 text-yellow-600 rounded-xl flex items-center justify-center shadow-inner"><Star size={20} /></div><p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">মোট পয়েন্ট</p><p className="text-3xl font-black text-slate-800">{totalPoints}</p></div>
-          </div>
-        )}
-
-        {activeTab === 'users' && (
-          <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 overflow-x-auto animate-in slide-up">
-            <h3 className="text-xl font-black mb-6 text-slate-800">ইউজার ডাটাবেস</h3>
-            <table className="w-full text-left">
-              <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-widest"><tr className="border-b"><th className="p-4">ইউজার</th><th className="p-4">ইউজার নেম</th><th className="p-4">পাসওয়ার্ড</th><th className="p-4">পয়েন্ট</th><th className="p-4">অ্যাকশন</th></tr></thead>
-              <tbody className="divide-y divide-slate-100">
-                {allUsers.map(u => (
-                  <tr key={u.id} className={`hover:bg-slate-50/50 transition-colors ${u.isBlocked ? 'bg-red-50/30' : ''}`}>
-                    <td className="p-4"><div className="flex items-center gap-3"><div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center font-black text-xs text-indigo-600 shadow-inner">{u.photoUrl ? <img src={u.photoUrl} className="w-full h-full object-cover rounded-lg" /> : u.name.charAt(0)}</div><span className="font-bold text-sm text-slate-700">{u.name}</span></div></td>
-                    <td className="p-4 text-xs font-black text-slate-400">{u.username}</td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-mono font-black bg-slate-100 px-2 py-1 rounded-lg text-slate-600 shadow-inner">{visiblePass[u.id] ? (u.password || 'No Pass') : '••••••••'}</span>
-                        <button onClick={() => setVisiblePass(p => ({ ...p, [u.id]: !p[u.id] }))} className="text-slate-300 hover:text-indigo-600 transition-colors">{visiblePass[u.id] ? <EyeOff size={14} /> : <Eye size={14} />}</button>
-                      </div>
-                    </td>
-                    <td className="p-4 text-indigo-600 font-black">{u.points}</td>
-                    <td className="p-4">
-                      <div className="flex gap-2">
-                        <button onClick={() => handleResetPassword(u.id)} className="p-2 bg-white text-slate-400 border border-slate-100 rounded-lg hover:text-indigo-600 hover:border-indigo-100 shadow-sm transition-all"><Key size={16} /></button>
-                        <button onClick={() => setAllUsers(prev => prev.map(item => item.id === u.id ? { ...item, isBlocked: !item.isBlocked } : item))} className={`p-2 rounded-lg border transition-all ${u.isBlocked ? 'bg-red-600 text-white border-red-700 shadow-md' : 'text-slate-400 border-slate-100 hover:text-red-500 hover:border-red-100 shadow-sm'}`}>{u.isBlocked ? <ShieldOff size={16} /> : <ShieldAlert size={16} />}</button>
-                        <button onClick={() => confirm('ইউজারটিকে কি ডিলিট করতে চান?') && setAllUsers(prev => prev.filter(item => item.id !== u.id))} className="p-2 text-slate-300 border border-slate-100 rounded-lg hover:text-red-600 hover:border-red-100 transition-all shadow-sm"><UserX size={16} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {activeTab === 'messages' && (
-          <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 h-[600px] flex overflow-hidden animate-in slide-up">
-            <div className={`w-full md:w-80 border-r flex flex-col ${selectedChatUserId ? 'hidden md:flex' : 'flex'}`}>
-              <div className="p-6 border-b bg-slate-50">
-                <h3 className="text-lg font-black text-slate-800">চ্যাট লিস্ট</h3>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">সক্রিয় ইউজার কথোপকথন</p>
-              </div>
-              <div className="flex-1 overflow-y-auto custom-scrollbar">
-                {conversationGroups.map(([uid, data]) => (
-                  <button 
-                    key={uid} 
-                    onClick={() => setSelectedChatUserId(uid)}
-                    className={`w-full p-4 flex items-center gap-4 hover:bg-indigo-50 transition-colors border-b border-slate-50 text-left ${selectedChatUserId === uid ? 'bg-indigo-50 border-r-4 border-r-indigo-600' : ''}`}
-                  >
-                    <div className="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center font-black text-indigo-600 shrink-0 shadow-inner">{data.userName.charAt(0)}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="font-black text-slate-800 text-sm truncate">{data.userName}</span>
-                        <span className="text-[9px] font-bold text-slate-400">{new Date(data.lastMessage.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                      </div>
-                      <p className="text-xs text-slate-500 truncate font-medium">{data.lastMessage.isAdmin ? "আপনি: " : ""}{data.lastMessage.text}</p>
-                    </div>
-                  </button>
-                ))}
-                {conversationGroups.length === 0 && <div className="p-10 text-center text-slate-300 italic font-bold">কোনো মেসেজ নেই</div>}
-              </div>
-            </div>
-            <div className={`flex-1 flex flex-col ${!selectedChatUserId ? 'hidden md:flex items-center justify-center bg-slate-50/30' : 'flex'}`}>
-              {selectedChatUserId ? (
-                <>
-                  <div className="p-4 border-b bg-white flex items-center justify-between shadow-sm">
-                    <div className="flex items-center gap-4">
-                      <button onClick={() => setSelectedChatUserId(null)} className="p-2 hover:bg-slate-100 rounded-xl md:hidden"><ArrowLeft size={20} /></button>
-                      <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-black shadow-lg">
-                        {conversationGroups.find(g => g[0] === selectedChatUserId)?.[1].userName.charAt(0) || "U"}
-                      </div>
-                      <div>
-                        <h4 className="font-black text-slate-800">{conversationGroups.find(g => g[0] === selectedChatUserId)?.[1].userName}</h4>
-                        <p className="text-[9px] font-black text-green-500 uppercase tracking-widest">Active Chat</p>
-                      </div>
-                    </div>
-                    <button onClick={() => confirm('চ্যাট ডিলিট?') && setHelpMessages(helpMessages.filter((m: HelpMessage) => m.userId !== selectedChatUserId))} className="p-2 text-red-400 hover:bg-red-50 rounded-xl"><Trash2 size={18} /></button>
-                  </div>
-                  <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/20 custom-scrollbar">
-                    {helpMessages.filter((m: HelpMessage) => m.userId === selectedChatUserId).map((m: HelpMessage) => (
-                      <div key={m.id} className={`flex ${m.isAdmin ? 'justify-end' : 'justify-start'} animate-in slide-up`}>
-                        <div className={`max-w-[80%] p-4 rounded-[24px] font-bold text-sm shadow-sm ${m.isAdmin ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'}`}>
-                          <div className="text-[9px] font-black opacity-60 mb-1 uppercase tracking-tighter">{m.isAdmin ? "আপনি (Admin)" : m.userName}</div>
-                          {m.text}
-                          <div className="text-[8px] opacity-40 mt-1 text-right">{new Date(m.timestamp).toLocaleTimeString()}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="p-4 bg-white border-t flex gap-3 shadow-inner">
-                    <input className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-3 outline-none font-bold text-sm" placeholder="ইউজারকে রিপ্লাই লিখুন..." value={adminReplyInput} onChange={e => setAdminReplyInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendAdminReply()} />
-                    <button onClick={sendAdminReply} className="bg-indigo-600 text-white p-3 rounded-2xl hover:bg-indigo-700 active:scale-90 shadow-lg transition-all"><Send size={20} /></button>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center p-10 space-y-4 opacity-50 grayscale">
-                  <div className="w-24 h-24 bg-slate-200 rounded-full flex items-center justify-center mx-auto"><MessageCircle size={48} className="text-slate-400" /></div>
-                  <h4 className="text-xl font-black text-slate-800">মেসেজ সিলেক্ট করুন</h4>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-        
-        {/* Rest of AdminTabs stay similar: notice, banner, links */}
-        {activeTab === 'notice' && (
-          <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6 animate-in slide-up">
-            <div className="space-y-1"><label className="text-[11px] font-black text-slate-400 uppercase ml-4">নতুন নোটিশ ({notices.length}/3)</label><textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none font-bold shadow-inner min-h-[120px]" placeholder="নোটিশের লেখাটি লিখুন..." value={noticeInput} onChange={e => setNoticeInput(e.target.value)} disabled={notices.length >= 3} /></div>
-            <button onClick={handleAddNotice} disabled={notices.length >= 3 || !noticeInput.trim()} className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black shadow-xl hover:bg-indigo-700 transition-colors disabled:opacity-50">যোগ করো</button>
-            <div className="space-y-3">{notices.map((n, i) => (<div key={n.id} className="p-5 bg-slate-50 rounded-2xl border flex justify-between items-center shadow-sm animate-in slide-up"><div className="flex gap-4 items-center"><span className="w-6 h-6 bg-white rounded-full flex items-center justify-center font-black text-xs text-indigo-600 border shadow-inner">{i+1}</span><p className="font-bold text-slate-700 text-sm">{n.text}</p></div><button onClick={() => setNotices(prev => prev.filter(item => item.id !== n.id))} className="text-red-400 p-2 hover:bg-red-50 rounded-xl transition-colors"><Trash2 size={18} /></button></div>))}</div>
-          </div>
-        )}
+      <div className="bg-white p-10 rounded-[48px] shadow-2xl border border-slate-100 max-w-md mx-auto text-center space-y-8 animate-in zoom-in">
+        <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto text-indigo-600"><Key size={40} /></div>
+        <h2 className="text-3xl font-black text-slate-800">অ্যাডমিন লগইন</h2>
+        <form onSubmit={handleUnlock} className="space-y-6">
+          <input type="password" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold" placeholder="পাসওয়ার্ড লিখুন" value={password} onChange={e => setPassword(e.target.value)} />
+          <button className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-xl shadow-lg border-b-4 border-indigo-900 active:border-b-0 active:translate-y-1">লগইন</button>
+        </form>
       </div>
     );
   }
 
-  return (
-    <div className="bg-white p-10 rounded-[48px] shadow-2xl max-w-md mx-auto space-y-8 border animate-in slide-up border-slate-100">
-      <div className="text-center space-y-4">
-        <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto text-indigo-600 shadow-inner"><ShieldCheck size={40} /></div>
-        <h2 className="text-3xl font-black text-slate-800 tracking-tight">অ্যাডমিন প্রবেশ</h2>
-      </div>
-      <div className="space-y-5">
-        <div className="space-y-1"><label className="text-[11px] font-black text-slate-400 uppercase ml-4">আইডি</label><input className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold shadow-inner" value={id} onChange={e => setId(e.target.value)} /></div>
-        <div className="space-y-1"><label className="text-[11px] font-black text-slate-400 uppercase ml-4">পাসওয়ার্ড</label><input type="password" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold shadow-inner" value={pass} onChange={e => setPass(e.target.value)} /></div>
-        {error && <p className="text-xs font-bold text-red-500 text-center animate-shake">{error}</p>}<button onClick={handleLogin} className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-xl shadow-xl active:scale-95 transition-all hover:bg-indigo-700 border-b-4 border-indigo-900 active:border-b-0">লগইন</button>
-      </div>
-    </div>
-  );
-};
+  const addNotice = () => {
+    if (!noticeInput.trim()) return;
+    setNotices([...notices, { id: Date.now().toString(), text: noticeInput, timestamp: Date.now() }]);
+    setNoticeInput('');
+  };
 
-const ProfileView = ({ profile, setProfile, stats, onLogout }: any) => {
-  const fileRef = useRef<HTMLInputElement>(null);
-  const handlePhoto = (e: any) => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onloadend = () => setProfile((p: any) => ({ ...p, photoUrl: r.result as string })); r.readAsDataURL(f); } };
-  if (!profile) return null;
+  const addLink = () => {
+    if (!linkTitle || !linkUrl) return;
+    setStudyLinks([...studyLinks, { id: Date.now().toString(), title: linkTitle, url: linkUrl, date: new Date().toLocaleDateString() }]);
+    setLinkTitle(''); setLinkUrl('');
+  };
+
+  const handleBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setHomeBanner(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const toggleUserBlock = (id: string) => {
+    setAllUsers((prev: UserProfile[]) => prev.map(u => u.id === id ? { ...u, isBlocked: !u.isBlocked } : u));
+  };
+
   return (
     <div className="space-y-8 animate-in slide-up">
-      <div className="bg-white p-10 rounded-[48px] shadow-xl border border-slate-100 flex flex-col items-center space-y-6">
-        <div className="relative"><div className="w-32 h-32 bg-indigo-50 rounded-[40px] overflow-hidden border-4 border-white shadow-xl shadow-indigo-100/50">{profile.photoUrl ? <img src={profile.photoUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-5xl">🎓</div>}</div><button onClick={() => fileRef.current?.click()} className="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-3 rounded-2xl border-2 border-white shadow-lg hover:bg-indigo-700 transition-all"><Camera size={18} /></button><input type="file" ref={fileRef} className="hidden" accept="image/*" onChange={handlePhoto} /></div>
-        <div className="text-center space-y-1"><h2 className="text-4xl font-black text-slate-800 tracking-tight">{profile.name}</h2><div className="flex gap-3 justify-center"><span className="bg-indigo-600 text-white px-5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md">{stats.level}</span><span className="bg-yellow-100 text-yellow-700 px-5 py-1.5 rounded-xl text-[10px] font-black border border-yellow-200 shadow-sm uppercase tracking-widest">{profile.points} PTS</span></div></div>
+      <div className="bg-indigo-600 p-8 rounded-[40px] text-white flex items-center justify-between shadow-xl">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-white/10 rounded-2xl"><ShieldCheck size={32} /></div>
+          <div><h2 className="text-2xl font-black">অ্যাডমিন প্যানেল</h2><p className="opacity-70 font-bold">ম্যানেজমেন্ট কন্ট্রোল</p></div>
+        </div>
+        <button onClick={() => { setIsAdmin(false); setMode(AppMode.HOME); }} className="bg-white/10 p-3 rounded-2xl hover:bg-white/20 transition-colors"><LogOut size={24} /></button>
       </div>
-      <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6">
-        <div className="space-y-4">
-          <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 ml-4 uppercase tracking-tighter">আপনার নাম</label><input className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold outline-none shadow-inner text-slate-700" value={profile.name} onChange={e => setProfile((p: any) => ({ ...p, name: e.target.value }))} /></div>
-          <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 ml-4 uppercase tracking-tighter">আপনার সম্পর্কে (BIO)</label><textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold min-h-[120px] outline-none shadow-inner text-slate-700" value={profile.bio} onChange={e => setProfile((p: any) => ({ ...p, bio: e.target.value }))} /></div>
-          <button onClick={onLogout} className="w-full p-5 bg-red-50 text-red-600 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-red-100 transition-colors border border-red-100 mt-4"><LogOut size={18} /> লগআউট করুন</button>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-4">
+          <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Megaphone size={20} className="text-indigo-600" /> নোটিশ বোর্ড</h3>
+          <div className="flex gap-2">
+            <input className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 outline-none font-bold" placeholder="নতুন নোটিশ..." value={noticeInput} onChange={e => setNoticeInput(e.target.value)} />
+            <button onClick={addNotice} className="bg-indigo-600 text-white p-4 rounded-2xl shadow-md"><PlusCircle size={20} /></button>
+          </div>
+          <div className="space-y-2 max-h-[200px] overflow-y-auto">
+            {notices.map((n: Notice) => (
+              <div key={n.id} className="p-4 bg-slate-50 rounded-2xl flex items-center justify-between border border-slate-100 group">
+                <p className="text-sm font-bold text-slate-700">{n.text}</p>
+                <button onClick={() => setNotices(notices.filter((not: Notice) => not.id !== n.id))} className="text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-4">
+          <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><LinkIcon size={20} className="text-indigo-600" /> স্টাডি লিঙ্ক</h3>
+          <input className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 outline-none font-bold" placeholder="শিরোনাম" value={linkTitle} onChange={e => setLinkTitle(e.target.value)} />
+          <div className="flex gap-2">
+            <input className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 outline-none font-bold" placeholder="URL" value={linkUrl} onChange={e => setLinkUrl(e.target.value)} />
+            <button onClick={addLink} className="bg-indigo-600 text-white p-4 rounded-2xl shadow-md"><PlusCircle size={20} /></button>
+          </div>
+          <div className="space-y-2 max-h-[200px] overflow-y-auto">
+            {studyLinks.map((l: StudyLink) => (
+              <div key={l.id} className="p-4 bg-slate-50 rounded-2xl flex items-center justify-between border border-slate-100 group">
+                <span className="text-sm font-bold text-slate-700 truncate mr-4">{l.title}</span>
+                <button onClick={() => setStudyLinks(studyLinks.filter((lnk: StudyLink) => lnk.id !== l.id))} className="text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-4">
+          <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Settings size={20} className="text-indigo-600" /> হোম ব্যানার</h3>
+          <div className="flex flex-col gap-4">
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {BANNER_SIZES.map(s => (
+                <button key={s} onClick={() => setHomeBannerSize(s)} className={`whitespace-nowrap px-4 py-2 rounded-xl text-[10px] font-black border transition-all ${homeBannerSize === s ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>{s}</button>
+              ))}
+            </div>
+            <div className="relative border-4 border-dashed border-slate-100 rounded-3xl p-8 text-center bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer group">
+              <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" onChange={handleBannerUpload} />
+              <div className="flex flex-col items-center gap-2">
+                <Camera size={32} className="text-slate-300 group-hover:text-indigo-600 transition-colors" />
+                <span className="text-xs font-black text-slate-400">আপলোড ইমেজ</span>
+              </div>
+            </div>
+            {homeBanner && (
+              <div className="relative rounded-2xl overflow-hidden group border border-slate-100">
+                <img src={homeBanner} className="w-full h-20 object-cover" />
+                <button onClick={() => setHomeBanner(null)} className="absolute inset-0 bg-black/40 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"><Trash2 size={20} /></button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-4">
+          <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Users size={20} className="text-indigo-600" /> ইউজার ম্যানেজমেন্ট</h3>
+          <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+            {allUsers.map((u: UserProfile) => (
+              <div key={u.id} className="p-4 bg-slate-50 rounded-2xl flex items-center justify-between border border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-lg">{AVATARS[u.points % AVATARS.length]}</div>
+                  <div><p className="text-sm font-black text-slate-700">{u.name}</p><p className="text-[10px] text-slate-400 font-bold">@{u.username} • {u.points} pts</p></div>
+                </div>
+                <button onClick={() => toggleUserBlock(u.id)} className={`p-2 rounded-xl transition-colors ${u.isBlocked ? 'bg-red-50 text-red-500' : 'bg-slate-100 text-slate-400 hover:text-red-500'}`}>{u.isBlocked ? <ShieldAlert size={18} /> : <ShieldOff size={18} />}</button>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -946,22 +999,106 @@ const ProfileView = ({ profile, setProfile, stats, onLogout }: any) => {
 
 const GoalView = ({ addPoints, updateCount, currentCount, setLoading }: any) => {
   const [input, setInput] = useState('');
-  const [feedback, setFeedback] = useState<string | null>(null);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [claimable, setClaimable] = useState(false);
-  const handleCheck = async () => { if (!input.trim()) return; setLoading(true); setFeedback(null); try { const res = await checkDailyGoal(input); if (res?.toUpperCase().includes('SUCCESS')) { setIsSuccess(true); setClaimable(true); setFeedback('চমৎকার! সঠিক বাক্য। রিওয়ার্ড গ্রহণ করুন।'); } else setFeedback(res || 'ভুল বাক্য!'); } catch (e) { setFeedback('ভুল হয়েছে।'); } finally { setLoading(false); } };
-  const claim = () => { addPoints(10); updateCount(); setClaimable(false); setIsSuccess(false); setFeedback('অভিনন্দন! ১০ পয়েন্ট জয়ী!'); setInput(''); };
+  const [result, setResult] = useState<string | null>(null);
+
+  const handleSubmit = async () => {
+    if (!input.trim() || currentCount >= 3) return;
+    setLoading(true);
+    try {
+      const res = await checkDailyGoal(input);
+      if (res?.includes("SUCCESS")) {
+        addPoints(10);
+        updateCount();
+        setResult("অসাধারণ! তুমি ১০ পয়েন্ট জিতেছো।");
+        setInput('');
+      } else {
+        setResult(res || "ভুল হয়েছে, আবার চেষ্টা করো!");
+      }
+    } catch (e) {
+      setResult("দুঃখিত, কোনো সমস্যা হয়েছে।");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-8 animate-in slide-up">
-      <div className="flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-4 bg-yellow-50 rounded-3xl text-yellow-600 border border-yellow-100 shadow-inner"><Star size={32} fill="currentColor" /></div><h2 className="text-2xl font-black text-slate-800 tracking-tight">আজকের লক্ষ্য</h2></div><div className="bg-indigo-50 px-6 py-3 rounded-2xl shadow-inner border border-indigo-100"><span className="text-3xl font-black text-indigo-600">{currentCount}</span><span className="text-indigo-300 font-bold ml-1">/ 3</span></div></div>
-      {currentCount >= 3 ? <div className="p-16 bg-green-50 rounded-[48px] text-center font-black text-green-800 text-2xl border-4 border-dashed border-green-200 animate-in zoom-in">🎉 সব লক্ষ্য পূর্ণ হয়েছে!</div> : (
-        <div className="space-y-6">
-          <textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-[32px] p-8 outline-none font-bold text-lg shadow-inner text-slate-700 min-h-[160px]" placeholder="ইংরেজিতে একটি সঠিক বাক্য লিখুন..." value={input} onChange={e => setInput(e.target.value)} />
-          <button onClick={handleCheck} disabled={!input.trim() || claimable} className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-xl shadow-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 border-b-4 border-indigo-900 active:border-b-0 active:translate-y-1">চেক করো</button>
-          {feedback && <div className={`p-8 rounded-[32px] border-2 font-bold text-sm animate-in zoom-in leading-relaxed ${isSuccess ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>{feedback}</div>}
-          {claimable && <button onClick={claim} className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white py-7 rounded-3xl font-black text-xl shadow-2xl animate-bounce-short uppercase tracking-widest border-b-8 border-orange-700">পুরস্কার গ্রহণ করো (+১০)</button>}
+    <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-8 animate-in slide-up text-center">
+      <div className="w-24 h-24 bg-yellow-50 rounded-[36px] flex items-center justify-center mx-auto text-yellow-500 shadow-inner border border-yellow-100"><Star size={48} fill="currentColor" /></div>
+      <div className="space-y-2">
+        <h2 className="text-3xl font-black text-slate-800">আজকের লক্ষ্য</h2>
+        <p className="text-slate-400 font-bold max-w-sm mx-auto">একটি ইংরেজি বাক্য বলুন বা লিখুন। সঠিক হলে ১০ পয়েন্ট বোনাস!</p>
+      </div>
+      <div className="bg-slate-50 p-6 rounded-3xl border-2 border-slate-100">
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">আজকের অগ্রগতি</span>
+          <span className="text-xl font-black text-indigo-600">{currentCount}/3</span>
         </div>
-      )}
+        <div className="w-full h-3 bg-white rounded-full overflow-hidden border border-slate-100 shadow-inner">
+          <div className="h-full bg-indigo-600 transition-all" style={{ width: `${(currentCount / 3) * 100}%` }}></div>
+        </div>
+      </div>
+      <div className="relative">
+        <textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none min-h-[120px] font-bold shadow-inner text-center text-xl" placeholder="আপনার বাক্যটি লিখুন..." value={input} onChange={e => setInput(e.target.value)} disabled={currentCount >= 3} />
+        <div className="absolute bottom-4 right-4"><STTButton onResult={setInput} lang="en-US" /></div>
+      </div>
+      <button onClick={handleSubmit} disabled={!input.trim() || currentCount >= 3} className="w-full bg-indigo-600 text-white py-6 rounded-3xl font-black text-xl shadow-xl hover:bg-indigo-700 transition-colors border-b-4 border-indigo-900 active:border-b-0 active:translate-y-1 disabled:opacity-50">চেক করুন ও পয়েন্ট জিতুন</button>
+      {result && <div className={`p-6 rounded-3xl font-bold ${result.includes('অসাধারণ') ? 'bg-green-50 text-green-700 border-green-100' : 'bg-red-50 text-red-600 border-red-100'} border animate-in zoom-in`}>{result}</div>}
+      {currentCount >= 3 && <p className="text-indigo-600 font-black italic">"অভিনন্দন! আজকের সকল লক্ষ্য পূরণ হয়েছে।"</p>}
+    </div>
+  );
+};
+
+const ProfileView = ({ profile, setProfile, stats, onLogout }: any) => {
+  if (!profile) return null;
+
+  return (
+    <div className="space-y-8 animate-in slide-up">
+      <div className="bg-white p-10 rounded-[48px] shadow-sm border border-slate-100 relative overflow-hidden text-center">
+        <div className="absolute top-0 left-0 w-full h-32 bg-indigo-600"></div>
+        <div className="relative pt-8">
+           <div className="w-32 h-32 rounded-[48px] border-8 border-white shadow-2xl mx-auto overflow-hidden bg-white mb-6">
+              {profile.photoUrl ? <img src={profile.photoUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-6xl bg-indigo-50">{AVATARS[profile.points % AVATARS.length]}</div>}
+           </div>
+           <h2 className="text-3xl font-black text-slate-800">{profile.name}</h2>
+           <p className="text-slate-400 font-bold italic mt-1">@{profile.username}</p>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4 mt-10">
+          <div className="bg-indigo-50 p-6 rounded-[32px] border border-indigo-100">
+             <Trophy className="mx-auto text-indigo-600 mb-2" size={24} />
+             <p className="text-xl font-black text-indigo-900">{profile.points}</p>
+             <p className="text-[10px] font-black text-indigo-400 uppercase">পয়েন্ট</p>
+          </div>
+          <div className="bg-rose-50 p-6 rounded-[32px] border border-rose-100">
+             <TrendingUp className="mx-auto text-rose-600 mb-2" size={24} />
+             <p className="text-xl font-black text-rose-900">{profile.streak || 0}</p>
+             <p className="text-[10px] font-black text-rose-400 uppercase">স্ট্রাইক</p>
+          </div>
+          <div className="bg-amber-50 p-6 rounded-[32px] border border-amber-100">
+             <Award className="mx-auto text-amber-600 mb-2" size={24} />
+             <p className="text-xl font-black text-amber-900">{Math.floor(profile.points / 50) + 1}</p>
+             <p className="text-[10px] font-black text-amber-400 uppercase">লেভেল</p>
+          </div>
+        </div>
+
+        <div className="mt-10 p-8 bg-slate-50 rounded-[40px] border border-slate-100 text-left">
+           <h4 className="text-sm font-black text-slate-400 uppercase mb-4 flex items-center gap-2"><Info size={16} /> স্ট্যাটিস্টিকস</h4>
+           <div className="space-y-6">
+              <div>
+                <div className="flex justify-between text-xs font-black text-slate-600 mb-2"><span>র‍্যাঙ্ক: {stats.level}</span><span>{profile.points}/{stats.nextThreshold}</span></div>
+                <div className="w-full h-4 bg-white rounded-full border border-slate-200 p-0.5 shadow-inner"><div className="h-full bg-indigo-600 rounded-full transition-all shadow-[0_0_10px_rgba(79,70,229,0.3)]" style={{ width: `${stats.progress}%` }}></div></div>
+              </div>
+              <div className="flex items-center gap-4 text-slate-600 font-bold">
+                <Clock size={18} className="text-indigo-400" />
+                <span>যোগদান করেছেন: {profile.joinDate}</span>
+              </div>
+           </div>
+        </div>
+
+        <div className="mt-8 flex gap-4">
+          <button onClick={onLogout} className="flex-1 bg-rose-50 text-rose-600 py-5 rounded-[28px] font-black shadow-sm hover:bg-rose-100 transition-colors flex items-center justify-center gap-2 border border-rose-100"><LogOut size={20} /> লগ আউট</button>
+        </div>
+      </div>
     </div>
   );
 };
