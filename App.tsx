@@ -247,7 +247,7 @@ const App: React.FC = () => {
   const handleDeleteAdminPost = () => {
     if (window.confirm("আপনি কি নিশ্চিতভাবে এই পোস্টটি ডিলিট করতে চান?")) {
       setAdminPost({ text: "", timestamp: 0, imageUrl: undefined });
-      alert("পোস্টটি ডিলিট করা হয়েছে।");
+      alert("পোস্ট সফলভাবে ডিলিট করা হয়েছে।");
     }
   };
 
@@ -334,7 +334,7 @@ const App: React.FC = () => {
              {isAdmin && (
                <button 
                  onClick={(e) => { e.stopPropagation(); handleDeleteAdminPost(); }} 
-                 className="absolute -top-2 -right-2 p-2 bg-rose-600 text-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 active:scale-95 z-20"
+                 className="absolute -top-2 -right-2 p-3 bg-rose-600 text-white rounded-full shadow-lg opacity-100 sm:opacity-0 group-hover:opacity-100 transition-all hover:scale-110 active:scale-95 z-20 border-2 border-white"
                  title="পোস্ট ডিলিট করুন"
                >
                  <Trash2 size={16} />
@@ -892,7 +892,7 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
       setAdminPost({ text: "", timestamp: 0, imageUrl: undefined });
       setPostTextInput("");
       setPostImgInput(null);
-      alert("অ্যাডমিন পোস্ট ডিলিট হয়েছে!");
+      alert("অ্যাডমিন পোস্ট সফলভাবে ডিলিট করা হয়েছে!");
     }
   };
 

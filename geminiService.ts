@@ -36,19 +36,19 @@ export const solveMath = async (mathProblem: string, base64Image?: string) => {
       } 
     });
     parts.push({ 
-      text: `উপরের ছবিতে থাকা অংকটি সমাধান করো। প্রতিটি ধাপ একদম সহজ ভাষায় বাংলায় বুঝিয়ে দাও। অংকের ধাপগুলোতে যোগ, বিয়োগ, গুণ, ভাগ লেখার বদলে সরাসরি (+, -, ×, ÷) চিহ্ন ব্যবহার করবে।` 
+      text: `Solve the math problem in this image. Explain steps clearly in Bengali. Use symbols (+, -, ×, ÷) only. Start with 'আসসালামু আলাইকুম'.` 
     });
   } else {
     parts.push({ 
-      text: `এই অংকটি সমাধান করো এবং প্রতিটি ধাপ পানির মতো সহজ ভাষায় বাংলায় বুঝিয়ে দাও: "${mathProblem}"। অংকের ধাপগুলোতে যোগ, বিয়োগ, গুণ, ভাগ লেখার বদলে সরাসরি (+, -, ×, ÷) চিহ্ন ব্যবহার করবে।` 
+      text: `Solve this math problem: "${mathProblem}". Explain steps clearly in Bengali. Use symbols (+, -, ×, ÷) only. Start with 'আসসালামু আলাইকুম'.` 
     });
   }
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-3-flash-preview', // Switched to Flash for high availability and reliability on Vercel
     contents: { parts },
     config: {
-      systemInstruction: "You are 'Math Wizard Master' (গণিতের জাদুকর). Solve the problem accurately and explain each step in simple Bengali. \n\nSTRICT RULES:\n1. NEVER use '$' or LaTeX delimiters in your response. \n2. For mathematical operations within steps, ALWAYS use symbols: '+' for addition, '-' for subtraction, '×' for multiplication (not '*'), and '÷' for division (not '/'). DO NOT write the Bengali words 'যোগ', 'বিয়োগ', 'গুণ', or 'ভাগ' inside the math equations/steps; use the symbols instead.\n3. Explain the context of the formulas in Bengali, but keep the formulas clean with just symbols and numbers.\n4. MANDATORY: Start every response with 'আসসালামু আলাইকুম'.\n5. Use emojis to make steps look engaging.\n6. Ensure the output is clean text, easy to read on a mobile screen."
+      systemInstruction: "You are 'Math Wizard Master'. Solve problems accurately. STRICT RULES: 1. No LaTeX/delimiters. 2. Use symbols (+, -, ×, ÷) for operations. 3. Explain in simple Bengali. 4. MANDATORY: Start with 'আসসালামু আলাইকুম'."
     }
   });
   return response.text;
