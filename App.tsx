@@ -41,9 +41,15 @@ import {
   PlusCircle,
   Link as LinkIcon,
   Image as ImageIcon,
-  Maximize
+  Maximize,
+  UserPlus,
+  LogIn,
+  LogOut,
+  User,
+  Lock,
+  List
 } from 'lucide-react';
-import { AppMode, UserProfile, HelpMessage, AdminProfile, StudyLink } from './types';
+import { AppMode, UserProfile, HelpMessage, AdminProfile, StudyLink, Notice } from './types';
 import { 
   getStudyExplanation, 
   solveMath, 
@@ -85,25 +91,12 @@ async function decodeAudioData(
   return buffer;
 }
 
-const DEFAULT_PROFILE: UserProfile = {
-  id: 'user_1',
-  name: 'নতুন ছাত্র',
-  bio: 'আমি এআই-এর সাথে শিখতে চাই!',
-  photoUrl: '',
-  points: 0,
-  streak: 0,
-  dailyChallengeCount: 0,
-  lastChallengeDate: new Date().toDateString(),
-  joinDate: new Date().toLocaleDateString('bn-BD')
-};
-
 const DEFAULT_ADMIN: AdminProfile = {
   name: 'Rimon Mahmud Roman',
   email: 'romantechgp@gmail.com',
   photoUrl: ''
 };
 
-// Requested Standard Banner Sizes
 const BANNER_SIZES = [
   "728 x 90 px",
   "300 x 250 px",
@@ -112,14 +105,6 @@ const BANNER_SIZES = [
   "300 x 600 px",
   "320 x 50 px",
   "320 x 100 px"
-];
-
-const MOCK_USERS = [
-  { id: 'u1', name: 'Ariful Islam', email: 'ariful@example.com', points: 450, level: 'Explorer', status: 'Online', joinDate: '১২/০২/২০২৪' },
-  { id: 'u2', name: 'Sadia Afrin', email: 'sadia@example.com', points: 1200, level: 'Legendary', status: 'Offline', joinDate: '০৫/০১/২০২৪' },
-  { id: 'u3', name: 'Tanvir Ahmed', email: 'tanvir@example.com', points: 85, level: 'Beginner', status: 'Online', joinDate: '১৯/০৫/২০২৪' },
-  { id: 'u4', name: 'Nusrat Jahan', email: 'nusrat@example.com', points: 310, level: 'Explorer', status: 'Offline', joinDate: '২২/০৩/২০২৪' },
-  { id: 'u5', name: 'Rimon Mahmud', email: 'romantechgp@gmail.com', points: 9999, level: 'Admin', status: 'Online', joinDate: '০১/০১/২০২৪' },
 ];
 
 const AVATARS = ['🎓', '🚀', '💡', '🎨', '🧠', '🌟', '🤖', '📚'];
@@ -210,17 +195,28 @@ const MenuButton: React.FC<{
 
 const App: React.FC = () => {
   const [mode, setMode] = useState<AppMode>(AppMode.HOME);
-  const [profile, setProfile] = useState<UserProfile>(() => {
-    const saved = localStorage.getItem('studybuddy_profile_v3');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed.lastChallengeDate !== new Date().toDateString()) {
-        parsed.dailyChallengeCount = 0;
-        parsed.lastChallengeDate = new Date().toDateString();
+  
+  // Database Simulation
+  const [allUsers, setAllUsers] = useState<UserProfile[]>(() => {
+    const saved = localStorage.getItem('studybuddy_users_db');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
+    const loggedInId = localStorage.getItem('studybuddy_active_user_id');
+    if (loggedInId) {
+      const savedUsers = JSON.parse(localStorage.getItem('studybuddy_users_db') || '[]');
+      const user = savedUsers.find((u: UserProfile) => u.id === loggedInId);
+      if (user) {
+        // Reset daily challenge if it's a new day
+        if (user.lastChallengeDate !== new Date().toDateString()) {
+          user.dailyChallengeCount = 0;
+          user.lastChallengeDate = new Date().toDateString();
+        }
+        return user;
       }
-      return parsed;
     }
-    return DEFAULT_PROFILE;
+    return null;
   });
 
   const [adminProfile, setAdminProfile] = useState<AdminProfile>(() => {
@@ -233,8 +229,9 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [notice, setNotice] = useState<string>(() => {
-    return localStorage.getItem('studybuddy_global_notice') || '';
+  const [notices, setNotices] = useState<Notice[]>(() => {
+    const saved = localStorage.getItem('studybuddy_global_notices_list');
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [homeBanner, setHomeBanner] = useState<string | null>(() => {
@@ -255,9 +252,17 @@ const App: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
 
+  // Persistence logic
   useEffect(() => {
-    localStorage.setItem('studybuddy_profile_v3', JSON.stringify(profile));
-  }, [profile]);
+    if (currentUser) {
+      const updatedUsers = allUsers.map(u => u.id === currentUser.id ? currentUser : u);
+      setAllUsers(updatedUsers);
+      localStorage.setItem('studybuddy_users_db', JSON.stringify(updatedUsers));
+      localStorage.setItem('studybuddy_active_user_id', currentUser.id);
+    } else {
+      localStorage.removeItem('studybuddy_active_user_id');
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     localStorage.setItem('studybuddy_admin_profile', JSON.stringify(adminProfile));
@@ -272,8 +277,8 @@ const App: React.FC = () => {
   }, [isAdmin]);
 
   useEffect(() => {
-    localStorage.setItem('studybuddy_global_notice', notice);
-  }, [notice]);
+    localStorage.setItem('studybuddy_global_notices_list', JSON.stringify(notices));
+  }, [notices]);
 
   useEffect(() => {
     localStorage.setItem('studybuddy_links', JSON.stringify(studyLinks));
@@ -292,15 +297,25 @@ const App: React.FC = () => {
   }, [homeBannerSize]);
 
   const addPoints = (pts: number) => {
-    setProfile(prev => ({ ...prev, points: prev.points + pts }));
+    if (currentUser) {
+      setCurrentUser(prev => prev ? ({ ...prev, points: prev.points + pts }) : null);
+    }
   };
 
   const updateChallengeCount = () => {
-    setProfile(prev => ({ ...prev, dailyChallengeCount: Math.min(prev.dailyChallengeCount + 1, 3) }));
+    if (currentUser) {
+      setCurrentUser(prev => prev ? ({ ...prev, dailyChallengeCount: Math.min(prev.dailyChallengeCount + 1, 3) }) : null);
+    }
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setMode(AppMode.HOME);
   };
 
   const userStats = useMemo(() => {
-    const points = profile.points;
+    if (!currentUser) return { level: "Beginner", nextThreshold: 100, progress: 0 };
+    const points = currentUser.points;
     let level = "শিক্ষানবিশ (Beginner)";
     let nextThreshold = 100;
     
@@ -320,16 +335,14 @@ const App: React.FC = () => {
 
     const progress = Math.min((points / nextThreshold) * 100, 100);
     return { level, nextThreshold, progress };
-  }, [profile.points]);
+  }, [currentUser?.points]);
 
   const renderHome = () => {
-    // Calculate aspect ratio from size string (e.g., "728 x 90 px")
     const match = homeBannerSize.match(/(\d+)\s*x\s*(\d+)/);
     const width = match ? parseInt(match[1]) : 728;
     const height = match ? parseInt(match[2]) : 90;
     const aspectRatio = `${width} / ${height}`;
 
-    // Responsive container styling
     const containerStyle: React.CSSProperties = {
       aspectRatio,
       width: '100%',
@@ -338,9 +351,10 @@ const App: React.FC = () => {
       maxHeight: height > width ? '400px' : 'auto'
     };
 
+    if (!currentUser) return <AuthView onLogin={setCurrentUser} users={allUsers} setAllUsers={setAllUsers} />;
+
     return (
       <div className="space-y-8 animate-in fade-in duration-500">
-        {/* 1. Banner Area */}
         {homeBanner ? (
           <div className="w-full flex justify-center">
             <div 
@@ -370,25 +384,28 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* 2. Global Notice */}
-        {notice && (
-          <div className="bg-yellow-50 border-2 border-yellow-200 p-6 rounded-[32px] relative overflow-hidden shadow-sm animate-in zoom-in">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-yellow-400 text-white rounded-2xl shadow-lg">
-                <Megaphone size={24} />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[10px] font-black uppercase text-yellow-600 tracking-widest bg-yellow-100 px-2 py-0.5 rounded-md">নোটিশ বোর্ড</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+        {notices.length > 0 && (
+          <div className="space-y-3 animate-in slide-up">
+            {notices.map((n, idx) => (
+              <div key={n.id} className={`bg-white border-2 border-slate-100 p-5 rounded-[28px] relative overflow-hidden shadow-sm hover:shadow-md transition-shadow`}>
+                <div className="flex items-start gap-4">
+                  <div className={`p-2.5 rounded-xl shrink-0 ${idx === 0 ? 'bg-yellow-400 text-white' : idx === 1 ? 'bg-indigo-500 text-white' : 'bg-rose-500 text-white'}`}>
+                    <Megaphone size={18} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${idx === 0 ? 'bg-yellow-100 text-yellow-700' : idx === 1 ? 'bg-indigo-50 text-indigo-700' : 'bg-rose-50 text-rose-700'}`}>
+                        নোটিশ #{idx + 1}
+                      </span>
+                    </div>
+                    <p className="text-slate-800 font-bold text-sm leading-relaxed">{n.text}</p>
+                  </div>
                 </div>
-                <p className="text-slate-800 font-bold text-sm sm:text-base leading-relaxed text-justify">{notice}</p>
               </div>
-            </div>
+            ))}
           </div>
         )}
 
-        {/* 3. User Stats Card */}
         <div 
           onClick={() => setMode(AppMode.PROFILE)}
           className="bg-white p-6 sm:p-8 rounded-[40px] shadow-xl shadow-indigo-100/50 border border-slate-100 flex flex-col sm:flex-row items-center justify-between cursor-pointer hover:shadow-2xl hover:-translate-y-1 transition-all group"
@@ -396,31 +413,30 @@ const App: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-center gap-6">
             <div className="relative">
               <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-[36px] overflow-hidden border-4 border-white shadow-xl ring-2 ring-indigo-50 group-hover:scale-105 transition-transform">
-                {profile.photoUrl ? (
-                  <img src={profile.photoUrl} className="w-full h-full object-cover" alt="Profile" />
+                {currentUser.photoUrl ? (
+                  <img src={currentUser.photoUrl} className="w-full h-full object-cover" alt="Profile" />
                 ) : (
-                  <div className="w-full h-full bg-indigo-50 flex items-center justify-center text-5xl">{AVATARS[0]}</div>
+                  <div className="w-full h-full bg-indigo-50 flex items-center justify-center text-5xl">{AVATARS[currentUser.points % AVATARS.length]}</div>
                 )}
               </div>
               <div className="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-2 rounded-2xl border-2 border-white shadow-lg"><Zap size={18} fill="currentColor" /></div>
             </div>
             <div className="text-center sm:text-left">
               <div className="flex flex-col sm:flex-row items-center gap-2">
-                <h2 className="text-3xl font-black text-slate-800 tracking-tight">{profile.name}</h2>
-                <span className="text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-indigo-600 text-white shadow-lg">LVL {Math.floor(profile.points / 50) + 1}</span>
+                <h2 className="text-3xl font-black text-slate-800 tracking-tight">{currentUser.name}</h2>
+                <span className="text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-indigo-600 text-white shadow-lg">LVL {Math.floor(currentUser.points / 50) + 1}</span>
               </div>
               <p className="text-sm font-bold text-slate-400 italic mt-1">{userStats.level}</p>
             </div>
           </div>
           <div className="mt-6 sm:mt-0 flex flex-col items-center sm:items-end w-full sm:w-auto">
-            <div className="flex items-center gap-2 text-yellow-500 font-black text-3xl"><Trophy size={28} /><span>{profile.points}</span></div>
+            <div className="flex items-center gap-2 text-yellow-500 font-black text-3xl"><Trophy size={28} /><span>{currentUser.points}</span></div>
             <div className="mt-2 w-full sm:w-32 bg-slate-100 h-2 rounded-full overflow-hidden border border-slate-50">
               <div className="h-full bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]" style={{ width: `${userStats.progress}%` }}></div>
             </div>
           </div>
         </div>
 
-        {/* 4. Main Feature Menu Options */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           <MenuButton icon={<BookOpen size={28} />} title="সহজ পড়া মোড" color="blue" desc="টপিক গল্পের মতো বুঝে নাও" onClick={() => setMode(AppMode.STUDY)} />
           <MenuButton icon={<Calculator size={28} />} title="অংক সমাধানকারী" color="purple" desc="অংকের উত্তর ও ব্যাখ্যা" onClick={() => setMode(AppMode.MATH)} />
@@ -431,7 +447,6 @@ const App: React.FC = () => {
           <MenuButton icon={<Type size={28} />} title="সঠিক বানান শিখুন" color="cyan" desc="ভুল বানান চেক করো" onClick={() => setMode(AppMode.SPELLING)} />
         </div>
 
-        {/* 5. Daily Goal Section */}
         <button onClick={() => setMode(AppMode.GOAL)} className="w-full bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-900 p-8 rounded-[40px] text-white shadow-2xl flex items-center justify-between group hover:scale-[1.01] transition-all border-b-8 border-indigo-900 active:border-b-0 active:translate-y-1">
           <div className="flex items-center gap-6">
             <div className="bg-white/10 p-4 rounded-3xl backdrop-blur-xl border border-white/20 group-hover:rotate-12 transition-transform"><Star size={40} className="text-yellow-400" fill="currentColor" /></div>
@@ -440,10 +455,9 @@ const App: React.FC = () => {
               <p className="text-indigo-100 font-medium">১০ পয়েন্ট জিততে সঠিক বাক্য বলুন বা লিখুন</p>
             </div>
           </div>
-          <div className="text-5xl font-black">{profile.dailyChallengeCount}<span className="text-indigo-300/50 text-2xl">/3</span></div>
+          <div className="text-5xl font-black">{currentUser.dailyChallengeCount}<span className="text-indigo-300/50 text-2xl">/3</span></div>
         </button>
 
-        {/* 6. Study Links Section */}
         {studyLinks.length > 0 && (
           <div className="bg-white p-6 sm:p-8 rounded-[40px] shadow-sm border border-slate-100 animate-in slide-up">
              <div className="flex items-center gap-4 mb-6">
@@ -483,9 +497,11 @@ const App: React.FC = () => {
           </div>
           <div className="flex items-center gap-3">
              <button onClick={() => setMode(AppMode.ADMIN)} className="p-3 bg-white border border-slate-100 text-slate-400 hover:text-indigo-600 rounded-2xl transition-all shadow-sm"><ShieldCheck size={22} /></button>
-             <button onClick={() => setMode(AppMode.PROFILE)} className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-indigo-100 bg-white group transition-transform hover:scale-105">
-                {profile.photoUrl ? <img src={profile.photoUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-xl bg-indigo-50">🎓</div>}
-             </button>
+             {currentUser && (
+               <button onClick={() => setMode(AppMode.PROFILE)} className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-indigo-100 bg-white group transition-transform hover:scale-105">
+                  {currentUser.photoUrl ? <img src={currentUser.photoUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-xl bg-indigo-50">🎓</div>}
+               </button>
+             )}
           </div>
         </div>
       </header>
@@ -505,10 +521,10 @@ const App: React.FC = () => {
         {mode === AppMode.SPEAKING && <SpeakingView setLoading={setLoading} />}
         {mode === AppMode.QA && <QAView setLoading={setLoading} />}
         {mode === AppMode.FRIEND_CHAT && <FriendChatView setLoading={setLoading} />}
-        {mode === AppMode.HELP_LINE && <HelpLineView helpMessages={helpMessages} setHelpMessages={setHelpMessages} userId={profile.id} isAdmin={isAdmin} adminName={adminProfile.name} />}
-        {mode === AppMode.ADMIN && <AdminPanel isAdmin={isAdmin} setIsAdmin={setIsAdmin} setMode={setMode} helpMessages={helpMessages} setHelpMessages={setHelpMessages} adminProfile={adminProfile} setAdminProfile={setAdminProfile} notice={notice} setNotice={setNotice} studyLinks={studyLinks} setStudyLinks={setStudyLinks} homeBanner={homeBanner} setHomeBanner={setHomeBanner} homeBannerSize={homeBannerSize} setHomeBannerSize={setHomeBannerSize} />}
-        {mode === AppMode.GOAL && <GoalView addPoints={addPoints} updateCount={updateChallengeCount} currentCount={profile.dailyChallengeCount} setLoading={setLoading} />}
-        {mode === AppMode.PROFILE && <ProfileView profile={profile} setProfile={setProfile} stats={userStats} />}
+        {mode === AppMode.HELP_LINE && <HelpLineView helpMessages={helpMessages} setHelpMessages={setHelpMessages} userId={currentUser?.id || 'guest'} isAdmin={isAdmin} adminName={adminProfile.name} />}
+        {mode === AppMode.ADMIN && <AdminPanel isAdmin={isAdmin} setIsAdmin={setIsAdmin} setMode={setMode} helpMessages={helpMessages} setHelpMessages={setHelpMessages} adminProfile={adminProfile} setAdminProfile={setAdminProfile} notices={notices} setNotices={setNotices} studyLinks={studyLinks} setStudyLinks={setStudyLinks} homeBanner={homeBanner} setHomeBanner={setHomeBanner} homeBannerSize={homeBannerSize} setHomeBannerSize={setHomeBannerSize} allUsers={allUsers} />}
+        {mode === AppMode.GOAL && <GoalView addPoints={addPoints} updateCount={updateChallengeCount} currentCount={currentUser?.dailyChallengeCount || 0} setLoading={setLoading} />}
+        {mode === AppMode.PROFILE && <ProfileView profile={currentUser} setProfile={setCurrentUser} stats={userStats} onLogout={handleLogout} />}
       </main>
 
       <footer className="bg-white border-t p-10 text-center mt-12">
@@ -523,6 +539,135 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+// --- Auth Component ---
+
+const AuthView: React.FC<{ 
+  onLogin: (user: UserProfile) => void; 
+  users: UserProfile[];
+  setAllUsers: React.Dispatch<React.SetStateAction<UserProfile[]>>;
+}> = ({ onLogin, users, setAllUsers }) => {
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (isLogin) {
+      const user = users.find(u => u.email === email && u.password === password);
+      if (user) {
+        onLogin(user);
+      } else {
+        setError('ভুল ইমেইল বা পাসওয়ার্ড! আবার চেষ্টা করুন।');
+      }
+    } else {
+      if (users.some(u => u.email === email)) {
+        setError('এই ইমেইল দিয়ে ইতিপূর্বে অ্যাকাউন্ট করা হয়েছে।');
+        return;
+      }
+      if (!name || !email || !password) {
+        setError('সবগুলো ঘর পূরণ করুন।');
+        return;
+      }
+      
+      const newUser: UserProfile = {
+        id: Date.now().toString(),
+        email,
+        password,
+        name,
+        bio: 'আমি স্টাডিবাডির সাথে শিখছি!',
+        points: 0,
+        streak: 0,
+        dailyChallengeCount: 0,
+        lastChallengeDate: new Date().toDateString(),
+        joinDate: new Date().toLocaleDateString('bn-BD')
+      };
+      
+      setAllUsers(prev => [...prev, newUser]);
+      onLogin(newUser);
+    }
+  };
+
+  return (
+    <div className="min-h-[70vh] flex items-center justify-center p-4 animate-in zoom-in">
+      <div className="bg-white w-full max-w-md p-10 rounded-[48px] shadow-2xl border border-slate-100 space-y-8">
+        <div className="text-center space-y-4">
+          <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto text-indigo-600 shadow-inner">
+            {isLogin ? <LogIn size={40} /> : <UserPlus size={40} />}
+          </div>
+          <h2 className="text-3xl font-black text-slate-800 tracking-tight">
+            {isLogin ? 'স্টাডিবাডিতে লগইন করুন' : 'নতুন অ্যাকাউন্ট খুলুন'}
+          </h2>
+          <p className="text-slate-400 font-bold text-sm">
+            {isLogin ? 'আপনার পড়াশোনার যাত্রা চালিয়ে যান' : 'সহজ উপায়ে শেখা শুরু করার প্রথম ধাপ'}
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {!isLogin && (
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-black text-slate-400 uppercase ml-4">আপনার নাম</label>
+              <div className="relative">
+                <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                <input 
+                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl pl-12 pr-6 py-4 focus:ring-4 focus:ring-indigo-100 outline-none font-black text-slate-700 transition-all shadow-inner" 
+                  placeholder="আপনার নাম লিখুন" 
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-black text-slate-400 uppercase ml-4">Gmail / Email</label>
+            <div className="relative">
+              <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+              <input 
+                type="email"
+                className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl pl-12 pr-6 py-4 focus:ring-4 focus:ring-indigo-100 outline-none font-black text-slate-700 transition-all shadow-inner" 
+                placeholder="example@gmail.com" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-black text-slate-400 uppercase ml-4">পাসওয়ার্ড</label>
+            <div className="relative">
+              <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+              <input 
+                type="password"
+                className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl pl-12 pr-6 py-4 focus:ring-4 focus:ring-indigo-100 outline-none font-black text-slate-700 transition-all shadow-inner" 
+                placeholder="পাসওয়ার্ড দিন" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {error && <p className="text-xs font-bold text-red-500 text-center animate-shake">{error}</p>}
+
+          <button className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-xl hover:bg-indigo-700 shadow-xl transition-all border-b-4 border-indigo-900 active:border-b-0 active:translate-y-1">
+            {isLogin ? 'লগইন করুন' : 'সাইন-আপ করুন'}
+          </button>
+        </form>
+
+        <div className="text-center pt-4 border-t border-slate-50">
+          <button 
+            onClick={() => setIsLogin(!isLogin)}
+            className="text-indigo-600 font-black text-sm hover:underline"
+          >
+            {isLogin ? 'অ্যাকাউন্ট নেই? সাইন-আপ করুন' : 'ইতিমধ্যে অ্যাকাউন্ট আছে? লগইন করুন'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
@@ -609,12 +754,12 @@ const HelpLineView = ({ helpMessages, setHelpMessages, userId, isAdmin, adminNam
   );
 };
 
-const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessages, adminProfile, setAdminProfile, notice, setNotice, studyLinks, setStudyLinks, homeBanner, setHomeBanner, homeBannerSize, setHomeBannerSize }: any) => {
+const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessages, adminProfile, setAdminProfile, notices, setNotices, studyLinks, setStudyLinks, homeBanner, setHomeBanner, homeBannerSize, setHomeBannerSize, allUsers }: any) => {
   const [id, setId] = useState('');
   const [pass, setPass] = useState('');
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'messages' | 'notice' | 'links' | 'banner'>('dashboard');
-  const [newNotice, setNewNotice] = useState(notice);
+  const [noticeInput, setNoticeInput] = useState('');
   const [publishMessage, setPublishMessage] = useState<string | null>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   
@@ -634,9 +779,26 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
     }
   };
 
-  const handlePostNotice = () => {
-    setNotice(newNotice);
-    setPublishMessage('নোটিশটি পাবলিশ করা হয়েছে!');
+  const handleAddNotice = () => {
+    if (!noticeInput.trim()) return;
+    if (notices.length >= 3) {
+      alert('সর্বোচ্চ ৩টি নোটিশ একসাথে রাখা সম্ভব। অনুগ্রহ করে একটি মুছে নতুনটি যোগ করুন।');
+      return;
+    }
+    const newNotice: Notice = {
+      id: Date.now().toString(),
+      text: noticeInput,
+      timestamp: Date.now()
+    };
+    setNotices([newNotice, ...notices]);
+    setNoticeInput('');
+    setPublishMessage('নোটিশটি সফলভাবে যোগ করা হয়েছে!');
+    setTimeout(() => setPublishMessage(null), 5000);
+  };
+
+  const deleteNotice = (nid: string) => {
+    setNotices(notices.filter((n: Notice) => n.id !== nid));
+    setPublishMessage('নোটিশটি মুছে ফেলা হয়েছে।');
     setTimeout(() => setPublishMessage(null), 5000);
   };
 
@@ -651,13 +813,6 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
       };
       reader.readAsDataURL(file);
     }
-  };
-
-  const clearNotice = () => {
-    setNotice('');
-    setNewNotice('');
-    setPublishMessage('নোটিশটি মুছে ফেলা হয়েছে।');
-    setTimeout(() => setPublishMessage(null), 5000);
   };
 
   const handlePostLink = () => {
@@ -688,6 +843,11 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
     const bannerMatch = homeBannerSize.match(/(\d+)\s*x\s*(\d+)/);
     const bW = bannerMatch ? parseInt(bannerMatch[1]) : 728;
     const bH = bannerMatch ? parseInt(bannerMatch[2]) : 90;
+
+    // Aggregate real data for the dashboard
+    const totalPoints = allUsers.reduce((acc: number, u: UserProfile) => acc + (u.points || 0), 0);
+    const totalChallengesToday = allUsers.reduce((acc: number, u: UserProfile) => acc + (u.dailyChallengeCount || 0), 0);
+    const activeUsersCount = allUsers.filter((u: UserProfile) => u.points > 0).length;
 
     return (
       <div className="space-y-8 animate-in zoom-in">
@@ -775,14 +935,50 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
 
         {activeTab === 'notice' && (
           <div className="bg-white p-10 rounded-[40px] shadow-sm border border-slate-100 space-y-8 animate-in slide-up">
-            <div className="flex items-center gap-4">
-              <div className="p-4 bg-yellow-50 rounded-3xl text-yellow-600 border border-yellow-100"><Megaphone size={32} /></div>
-              <div><h3 className="text-2xl font-black text-slate-800">গ্লোবাল নোটিশ</h3><p className="text-sm font-bold text-slate-400">আপনার পোস্ট করা নোটিশ হোম পেজে সবাই দেখতে পাবে</p></div>
+            <div className="flex flex-col gap-6">
+              <div className="flex items-center gap-4">
+                <div className="p-4 bg-yellow-50 rounded-3xl text-yellow-600 border border-yellow-100"><Megaphone size={32} /></div>
+                <div><h3 className="text-2xl font-black text-slate-800">নোটিশ বোর্ড লিস্ট</h3><p className="text-sm font-bold text-slate-400">একসাথে সর্বোচ্চ ৩টি নোটিশ পাবলিশ করতে পারবেন</p></div>
+              </div>
+
+              <div className="bg-slate-50 p-8 rounded-[32px] border-2 border-dashed border-slate-200 space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black text-slate-400 uppercase ml-4">নতুন নোটিশ লিখুন ({notices.length}/3)</label>
+                  <textarea 
+                    className="w-full bg-white border-2 border-slate-100 rounded-3xl p-6 focus:ring-4 focus:ring-yellow-100 outline-none min-h-[120px] font-bold text-slate-700 shadow-sm" 
+                    placeholder="নোটিশের লেখাটি লিখুন..." 
+                    value={noticeInput} 
+                    onChange={(e) => setNoticeInput(e.target.value)} 
+                    disabled={notices.length >= 3}
+                  />
+                </div>
+                <button 
+                  onClick={handleAddNotice} 
+                  disabled={!noticeInput.trim() || notices.length >= 3}
+                  className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black hover:bg-indigo-700 shadow-xl transition-all flex items-center justify-center gap-3 text-lg disabled:opacity-50"
+                >
+                  <PlusCircle size={20} /> নোটিশ যোগ করো
+                </button>
+              </div>
             </div>
-            <textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-8 focus:ring-4 focus:ring-yellow-100 outline-none min-h-[200px] font-bold text-slate-700 shadow-inner text-lg" placeholder="সবার জন্য গুরুত্বপূর্ণ বার্তাটি এখানে লিখুন..." value={newNotice} onChange={(e) => setNewNotice(e.target.value)} />
-            <div className="flex flex-col sm:flex-row gap-4">
-              <button onClick={handlePostNotice} className="flex-1 bg-indigo-600 text-white py-5 rounded-3xl font-black hover:bg-indigo-700 shadow-xl transition-all flex items-center justify-center gap-3 text-xl"><Bell size={24} /> পাবলিশ করো</button>
-              <button onClick={clearNotice} className="bg-red-50 text-red-600 px-10 py-5 rounded-3xl font-black hover:bg-red-100 transition-all border border-red-100 flex items-center justify-center gap-3"><Trash2 size={24} /> মুছে ফেলো</button>
+
+            <div className="space-y-4">
+              <h4 className="text-sm font-black uppercase text-slate-400 tracking-widest ml-2">বর্তমান নোটিশসমূহ</h4>
+              {notices.length === 0 ? (
+                <div className="text-center py-20 bg-slate-50 rounded-[32px] border border-slate-100 text-slate-300 italic font-bold">কোনো নোটিশ পাবলিশ করা হয়নি</div>
+              ) : (
+                notices.map((n, idx) => (
+                  <div key={n.id} className="p-6 bg-slate-50 rounded-3xl border border-slate-100 flex items-center justify-between group hover:bg-white hover:border-yellow-100 transition-all">
+                    <div className="flex items-start gap-4 flex-1">
+                      <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-yellow-600 shadow-sm border border-yellow-50 shrink-0 font-black">
+                        {idx + 1}
+                      </div>
+                      <p className="font-bold text-slate-700 text-sm leading-relaxed">{n.text}</p>
+                    </div>
+                    <button onClick={() => deleteNotice(n.id)} className="p-3 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition-colors shrink-0 ml-4"><Trash2 size={20} /></button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
@@ -849,14 +1045,35 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
 
         {activeTab === 'dashboard' && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in slide-up">
-            <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 flex flex-col gap-4"><div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center border border-blue-100"><Users size={24} /></div><div><p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">মোট ইউজার</p><p className="text-4xl font-black text-slate-800">{MOCK_USERS.length}</p></div><div className="flex items-center gap-2 text-green-500 font-bold text-xs"><TrendingUp size={14} /> +১২% আজ</div></div>
-            <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 flex flex-col gap-4"><div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center border border-purple-100"><Zap size={24} /></div><div><p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">আজকের অ্যাক্টিভিটি</p><p className="text-4xl font-black text-slate-800">৮৯২</p></div><div className="flex items-center gap-2 text-indigo-500 font-bold text-xs"><Clock size={14} /> সর্বমোট ৮.৫ ঘণ্টা</div></div>
-            <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 flex flex-col gap-4"><div className="w-12 h-12 bg-yellow-50 text-yellow-600 rounded-2xl flex items-center justify-center border border-yellow-100"><Star size={24} /></div><div><p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">পয়েন্ট ডিস্ট্রিবিউশন</p><p className="text-4xl font-black text-slate-800">১২২কে</p></div><div className="flex items-center gap-2 text-yellow-600 font-bold text-xs"><Trophy size={14} /> টপ ইউজার: রিমন মাহমুদ</div></div>
+            <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 flex flex-col gap-4">
+              <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center border border-blue-100"><Users size={24} /></div>
+              <div>
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">মোট ইউজার</p>
+                <p className="text-4xl font-black text-slate-800">{allUsers.length}</p>
+              </div>
+              <div className="flex items-center gap-2 text-green-500 font-bold text-xs"><TrendingUp size={14} /> {activeUsersCount} অ্যাক্টিভ ইউজার</div>
+            </div>
+            <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 flex flex-col gap-4">
+              <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center border border-purple-100"><Zap size={24} /></div>
+              <div>
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">আজকের অ্যাক্টিভিটি</p>
+                <p className="text-4xl font-black text-slate-800">{totalChallengesToday}</p>
+              </div>
+              <div className="flex items-center gap-2 text-indigo-500 font-bold text-xs"><Clock size={14} /> মোট চ্যালেঞ্জ সম্পন্ন</div>
+            </div>
+            <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 flex flex-col gap-4">
+              <div className="w-12 h-12 bg-yellow-50 text-yellow-600 rounded-2xl flex items-center justify-center border border-yellow-100"><Star size={24} /></div>
+              <div>
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">পয়েন্ট ডিস্ট্রিবিউশন</p>
+                <p className="text-4xl font-black text-slate-800">{totalPoints}</p>
+              </div>
+              <div className="flex items-center gap-2 text-yellow-600 font-bold text-xs"><Trophy size={14} /> সর্বমোট অর্জিত পয়েন্ট</div>
+            </div>
           </div>
         )}
 
         {activeTab === 'users' && (
-          <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 animate-in slide-up"><div className="flex items-center justify-between mb-8"><h3 className="text-2xl font-black text-slate-800">সকল ইউজার ডাটাবেস</h3><div className="relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} /><input className="pl-12 pr-6 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-100 font-bold text-sm" placeholder="ইউজার খুঁজুন..." /></div></div><div className="overflow-x-auto rounded-3xl border border-slate-50"><table className="w-full text-left"><thead className="bg-slate-50"><tr className="text-[10px] font-black uppercase tracking-widest text-slate-400"><th className="p-6">ইউজার</th><th className="p-6">ইমেইল</th><th className="p-6">পয়েন্ট</th><th className="p-6">লেভেল</th><th className="p-6">অবস্থা</th><th className="p-6">যোগদান</th></tr></thead><tbody className="divide-y divide-slate-50">{MOCK_USERS.map(user => (<tr key={user.id} className="hover:bg-slate-50/50 transition-colors"><td className="p-6"><div className="flex items-center gap-4"><div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 font-black text-sm">{user.name.charAt(0)}</div><span className="font-bold text-slate-700">{user.name}</span></div></td><td className="p-6 text-sm text-slate-400 font-medium">{user.email}</td><td className="p-6 text-indigo-600 font-black">{user.points}</td><td className="p-6 text-xs"><span className="px-3 py-1 bg-slate-100 rounded-full text-slate-500 font-black uppercase tracking-tighter">{user.level}</span></td><td className="p-6"><span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md ${user.status === 'Online' ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'}`}>{user.status}</span></td><td className="p-6 text-xs text-slate-300 font-bold">{user.joinDate}</td></tr>))}</tbody></table></div></div>
+          <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 animate-in slide-up"><div className="flex items-center justify-between mb-8"><h3 className="text-2xl font-black text-slate-800">সকল ইউজার ডাটাবেস</h3><div className="relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} /><input className="pl-12 pr-6 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-100 font-bold text-sm" placeholder="ইউজার খুঁজুন..." /></div></div><div className="overflow-x-auto rounded-3xl border border-slate-50"><table className="w-full text-left"><thead className="bg-slate-50"><tr className="text-[10px] font-black uppercase tracking-widest text-slate-400"><th className="p-6">ইউজার</th><th className="p-6">ইমেইল</th><th className="p-6">পয়েন্ট</th><th className="p-6">যোগদান</th></tr></thead><tbody className="divide-y divide-slate-50">{allUsers.map(user => (<tr key={user.id} className="hover:bg-slate-50/50 transition-colors"><td className="p-6"><div className="flex items-center gap-4"><div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 font-black text-sm">{user.name.charAt(0)}</div><span className="font-bold text-slate-700">{user.name}</span></div></td><td className="p-6 text-sm text-slate-400 font-medium">{user.email}</td><td className="p-6 text-indigo-600 font-black">{user.points}</td><td className="p-6 text-xs text-slate-300 font-bold">{user.joinDate}</td></tr>))}</tbody></table></div></div>
         )}
         
         {activeTab === 'messages' && (
@@ -878,11 +1095,12 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
   );
 };
 
-const ProfileView = ({ profile, setProfile, stats }: any) => {
+const ProfileView = ({ profile, setProfile, stats, onLogout }: any) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => setProfile((prev: any) => ({ ...prev, photoUrl: reader.result as string })); reader.readAsDataURL(file); } };
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => setProfile((prev: any) => prev ? ({ ...prev, photoUrl: reader.result as string }) : null); reader.readAsDataURL(file); } };
+  if (!profile) return null;
   return (
-    <div className="space-y-8 animate-in slide-up"><div className="bg-white p-10 rounded-[48px] shadow-xl border border-slate-100 flex flex-col items-center text-center space-y-6"><div className="relative group"><div className="w-32 h-32 bg-indigo-50 rounded-[40px] overflow-hidden border-4 border-white shadow-xl group-hover:scale-105 transition-transform">{profile.photoUrl ? (<img src={profile.photoUrl} className="w-full h-full object-cover" />) : (<div className="w-full h-full flex items-center justify-center text-5xl">🎓</div>)}</div><button onClick={() => fileInputRef.current?.click()} className="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-3 rounded-2xl shadow-lg hover:bg-indigo-700 transition-all border-2 border-white"><Camera size={20} /></button><input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageChange} /></div><div className="space-y-2"><h2 className="text-4xl font-black text-slate-800 tracking-tight">{profile.name}</h2><div className="flex items-center justify-center gap-2"><span className="bg-indigo-600 text-white px-4 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest">{stats.level}</span><span className="bg-yellow-100 text-yellow-700 px-4 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border border-yellow-200">{profile.points} POINTS</span></div></div></div><div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6"><h3 className="text-xl font-black flex items-center gap-2"><Settings size={22} className="text-indigo-600" /> প্রোফাইল তথ্য</h3><div className="space-y-4"><div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-4">আপনার নাম</label><input className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-indigo-100 outline-none font-bold text-slate-700 shadow-inner" value={profile.name} onChange={(e) => setProfile((prev: any) => ({ ...prev, name: e.target.value }))} /></div><div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-4">আপনার লক্ষ্য (Bio)</label><textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-indigo-100 outline-none font-bold text-slate-700 min-h-[100px] shadow-inner" value={profile.bio} onChange={(e) => setProfile((prev: any) => ({ ...prev, bio: e.target.value }))} /></div></div></div></div>
+    <div className="space-y-8 animate-in slide-up"><div className="bg-white p-10 rounded-[48px] shadow-xl border border-slate-100 flex flex-col items-center text-center space-y-6"><div className="relative group"><div className="w-32 h-32 bg-indigo-50 rounded-[40px] overflow-hidden border-4 border-white shadow-xl group-hover:scale-105 transition-transform">{profile.photoUrl ? (<img src={profile.photoUrl} className="w-full h-full object-cover" />) : (<div className="w-full h-full flex items-center justify-center text-5xl">🎓</div>)}</div><button onClick={() => fileInputRef.current?.click()} className="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-3 rounded-2xl shadow-lg hover:bg-indigo-700 transition-all border-2 border-white"><Camera size={20} /></button><input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageChange} /></div><div className="space-y-2"><h2 className="text-4xl font-black text-slate-800 tracking-tight">{profile.name}</h2><div className="flex items-center justify-center gap-2"><span className="bg-indigo-600 text-white px-4 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest">{stats.level}</span><span className="bg-yellow-100 text-yellow-700 px-4 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border border-yellow-200">{profile.points} POINTS</span></div></div></div><div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6"><h3 className="text-xl font-black flex items-center gap-2"><Settings size={22} className="text-indigo-600" /> প্রোফাইল তথ্য</h3><div className="space-y-4"><div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-4">আপনার নাম</label><input className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-indigo-100 outline-none font-bold text-slate-700 shadow-inner" value={profile.name} onChange={(e) => setProfile((prev: any) => prev ? ({ ...prev, name: e.target.value }) : null)} /></div><div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-4">আপনার লক্ষ্য (Bio)</label><textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-indigo-100 outline-none font-bold text-slate-700 min-h-[100px] shadow-inner" value={profile.bio} onChange={(e) => setProfile((prev: any) => prev ? ({ ...prev, bio: e.target.value }) : null)} /></div><button onClick={onLogout} className="w-full mt-4 flex items-center justify-center gap-2 p-4 bg-red-50 text-red-600 rounded-2xl font-black hover:bg-red-100 transition-colors border border-red-100"><LogOut size={18} /> লগআউট করুন</button></div></div></div>
   );
 };
 

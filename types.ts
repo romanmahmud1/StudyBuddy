@@ -1,6 +1,8 @@
 
 export interface UserProfile {
   id: string;
+  email: string;
+  password?: string;
   name: string;
   bio: string;
   photoUrl?: string;
@@ -33,6 +35,12 @@ export interface StudyLink {
   date: string;
 }
 
+export interface Notice {
+  id: string;
+  text: string;
+  timestamp: number;
+}
+
 export enum AppMode {
   HOME = 'HOME',
   STUDY = 'STUDY',
@@ -44,5 +52,6 @@ export enum AppMode {
   ADMIN = 'ADMIN',
   GOAL = 'GOAL',
   PROFILE = 'PROFILE',
-  SPELLING = 'SPELLING'
+  SPELLING = 'SPELLING',
+  AUTH = 'AUTH'
 }
