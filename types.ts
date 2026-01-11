@@ -20,6 +20,12 @@ export interface AdminProfile {
   photoUrl?: string;
 }
 
+export interface AdminPost {
+  text: string;
+  imageUrl?: string;
+  timestamp: number;
+}
+
 export interface HelpMessage {
   id: string;
   userId: string;
@@ -61,5 +67,6 @@ export enum AppMode {
   PROFILE = 'PROFILE',
   SPELLING = 'SPELLING',
   AUTH = 'AUTH',
-  SCRIPT_WRITER = 'SCRIPT_WRITER'
+  SCRIPT_WRITER = 'SCRIPT_WRITER',
+  DAILY_REWARD = 'DAILY_REWARD'
 }
