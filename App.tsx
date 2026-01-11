@@ -13,7 +13,6 @@ import {
   Send, 
   Mic,
   Camera,
-  Settings,
   Star,
   Zap,
   Award,
@@ -25,20 +24,18 @@ import {
   RefreshCw,
   Copy,
   Check,
-  LayoutDashboard,
   Users,
   X,
   Megaphone,
-  Bell,
   Trash2,
   ExternalLink,
   PlusCircle,
   Link as LinkIcon,
   LogIn,
   LogOut,
-  User,
-  UserPlus,
   UserX,
+  // Fix: Added missing UserPlus icon from lucide-react
+  UserPlus,
   ShieldAlert,
   ShieldOff,
   Key,
@@ -47,7 +44,8 @@ import {
   Eye,
   EyeOff,
   PenLine,
-  FileText
+  FileText,
+  Settings
 } from 'lucide-react';
 import { AppMode, UserProfile, HelpMessage, AdminProfile, StudyLink, Notice } from './types';
 import { 
@@ -117,14 +115,12 @@ const STTButton: React.FC<{
   const [isListening, setIsListening] = useState(false);
 
   const startListening = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitRecognition;
-    const recognition = SpeechRecognition ? new SpeechRecognition() : (window as any).webkitSpeechRecognition ? new (window as any).webkitSpeechRecognition() : null;
-    
-    if (!recognition) {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
       alert("দুঃখিত, আপনার ব্রাউজার স্পিচ-টু-টেক্সট সমর্থন করে না।");
       return;
     }
-    
+    const recognition = new SpeechRecognition();
     recognition.lang = lang;
     recognition.onstart = () => setIsListening(true);
     recognition.onend = () => setIsListening(false);
@@ -199,7 +195,6 @@ const App: React.FC = () => {
   const [mode, setMode] = useState<AppMode>(AppMode.HOME);
   const isInternalChange = useRef(false);
 
-  // Data State
   const [allUsers, setAllUsers] = useState<UserProfile[]>(() => {
     const saved = localStorage.getItem('studybuddy_users_db');
     return saved ? JSON.parse(saved) : [];
@@ -254,7 +249,6 @@ const App: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
 
-  // Navigation History Management
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
       isInternalChange.current = true;
@@ -265,7 +259,6 @@ const App: React.FC = () => {
       }
       setTimeout(() => { isInternalChange.current = false; }, 50);
     };
-
     window.history.replaceState({ mode: AppMode.HOME }, "");
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -277,11 +270,8 @@ const App: React.FC = () => {
     }
   }, [mode]);
 
-  const changeMode = (newMode: AppMode) => {
-    setMode(newMode);
-  };
+  const changeMode = (newMode: AppMode) => setMode(newMode);
 
-  // Persistence Effects
   useEffect(() => {
     localStorage.setItem('studybuddy_users_db', JSON.stringify(allUsers));
     if (currentUser) {
@@ -700,38 +690,15 @@ const ScriptWriterView = ({ setLoading }: any) => {
           <h2 className="text-2xl font-black text-slate-800 tracking-tight">স্ক্রিপ্ট লিখে নাও</h2>
         </div>
         <div className="flex gap-2">
-          <button 
-            onClick={() => setLang('bn')} 
-            className={`px-4 py-2 rounded-xl font-black text-xs transition-all ${lang === 'bn' ? 'bg-rose-600 text-white shadow-md' : 'bg-slate-50 text-slate-400 hover:text-rose-600'}`}
-          >
-            বাংলা
-          </button>
-          <button 
-            onClick={() => setLang('en')} 
-            className={`px-4 py-2 rounded-xl font-black text-xs transition-all ${lang === 'en' ? 'bg-rose-600 text-white shadow-md' : 'bg-slate-50 text-slate-400 hover:text-rose-600'}`}
-          >
-            English
-          </button>
+          <button onClick={() => setLang('bn')} className={`px-4 py-2 rounded-xl font-black text-xs transition-all ${lang === 'bn' ? 'bg-rose-600 text-white shadow-md' : 'bg-slate-50 text-slate-400 hover:text-rose-600'}`}>বাংলা</button>
+          <button onClick={() => setLang('en')} className={`px-4 py-2 rounded-xl font-black text-xs transition-all ${lang === 'en' ? 'bg-rose-600 text-white shadow-md' : 'bg-slate-50 text-slate-400 hover:text-rose-600'}`}>English</button>
         </div>
       </div>
       <div className="relative">
-        <textarea 
-          className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none min-h-[180px] font-bold shadow-inner text-slate-700" 
-          placeholder="কোন টপিক বা বিষয়ের ওপর স্ক্রিপ্ট চান তা এখানে লিখুন..." 
-          value={input} 
-          onChange={e => setInput(e.target.value)} 
-        />
-        <div className="absolute bottom-4 right-4">
-          <STTButton onResult={setInput} lang={lang === 'bn' ? 'bn-BD' : 'en-US'} />
-        </div>
+        <textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none min-h-[180px] font-bold shadow-inner text-slate-700" placeholder="কোন টপিক বা বিষয়ের ওপর স্ক্রিপ্ট চান তা এখানে লিখুন..." value={input} onChange={e => setInput(e.target.value)} />
+        <div className="absolute bottom-4 right-4"><STTButton onResult={setInput} lang={lang === 'bn' ? 'bn-BD' : 'en-US'} /></div>
       </div>
-      <button 
-        onClick={handleSubmit} 
-        disabled={!input.trim()}
-        className="w-full bg-rose-600 text-white py-5 rounded-3xl font-black shadow-xl text-xl flex items-center justify-center gap-3 hover:bg-rose-700 transition-colors border-b-4 border-rose-900 active:border-b-0 active:translate-y-1 disabled:opacity-50"
-      >
-        <FileText size={20} /> স্ক্রিপ্ট তৈরি করো
-      </button>
+      <button onClick={handleSubmit} disabled={!input.trim()} className="w-full bg-rose-600 text-white py-5 rounded-3xl font-black shadow-xl text-xl flex items-center justify-center gap-3 hover:bg-rose-700 transition-colors border-b-4 border-rose-900 active:border-b-0 active:translate-y-1 disabled:opacity-50"><FileText size={20} /> স্ক্রিপ্ট তৈরি করো</button>
       {result && (
         <div className="p-8 bg-rose-50/50 rounded-[32px] border-2 border-rose-100 relative animate-in slide-up space-y-4">
           <div className="flex justify-between items-center">
@@ -739,12 +706,7 @@ const ScriptWriterView = ({ setLoading }: any) => {
             <CopyButton text={result} />
           </div>
           <div className="whitespace-pre-wrap leading-relaxed font-medium text-slate-700 bg-white/50 p-6 rounded-2xl border border-rose-50 shadow-inner">{result}</div>
-          <button 
-            onClick={handleCopyAll}
-            className="w-full py-4 bg-white border-2 border-rose-200 rounded-2xl text-rose-600 font-black text-sm hover:bg-rose-50 transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95"
-          >
-            <Copy size={18} /> {copyStatus}
-          </button>
+          <button onClick={handleCopyAll} className="w-full py-4 bg-white border-2 border-rose-200 rounded-2xl text-rose-600 font-black text-sm hover:bg-rose-50 transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95"><Copy size={18} /> {copyStatus}</button>
         </div>
       )}
     </div>
@@ -754,7 +716,6 @@ const ScriptWriterView = ({ setLoading }: any) => {
 const FriendChatView = ({ setLoading }: any) => {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<{ role: 'user' | 'model', parts: [{ text: string }] }[]>([]);
-
   const handleSubmit = async () => {
     if (!input.trim()) return;
     const userMsg: { role: 'user', parts: [{ text: string }] } = { role: 'user', parts: [{ text: input }] };
@@ -765,44 +726,16 @@ const FriendChatView = ({ setLoading }: any) => {
       const history = messages.map(m => ({ role: m.role, parts: m.parts }));
       const response = await chatWithAiFriend(history, input);
       setMessages(prev => [...prev, { role: 'model', parts: [{ text: response || '' }] }]);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { console.error(e); } finally { setLoading(false); }
   };
-
   return (
     <div className="bg-white p-6 rounded-[40px] shadow-sm border border-slate-100 flex flex-col h-[600px] animate-in slide-up">
-      <div className="flex items-center gap-4 mb-6 shrink-0">
-        <div className="p-4 bg-pink-50 rounded-3xl text-pink-600"><MessageCircle size={32} /></div>
-        <h2 className="text-2xl font-black text-slate-800">এআই বন্ধু চ্যাট</h2>
-      </div>
+      <div className="flex items-center gap-4 mb-6 shrink-0"><div className="p-4 bg-pink-50 rounded-3xl text-pink-600"><MessageCircle size={32} /></div><h2 className="text-2xl font-black text-slate-800">এআই বন্ধু চ্যাট</h2></div>
       <div className="flex-1 overflow-y-auto space-y-4 mb-6 p-2">
-        {messages.length === 0 && (
-          <div className="text-center py-12 text-slate-400 font-bold italic">
-            "হাই! আমি তোমার স্টাডিবাডি। আমার সাথে ইংরেজিতে কথা বলো, আমি তোমার ভুল শুধরে দেবো!"
-          </div>
-        )}
-        {messages.map((m, i) => (
-          <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] p-4 rounded-3xl font-bold shadow-sm ${m.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-50 text-slate-700 rounded-tl-none border border-slate-100'}`}>
-              {m.parts[0].text}
-            </div>
-          </div>
-        ))}
+        {messages.length === 0 && <div className="text-center py-12 text-slate-400 font-bold italic">"হাই! আমি তোমার স্টাডিবাডি। আমার সাথে ইংরেজিতে কথা বলো, আমি তোমার ভুল শুধরে দেবো!"</div>}
+        {messages.map((m, i) => (<div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[80%] p-4 rounded-3xl font-bold shadow-sm ${m.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-50 text-slate-700 rounded-tl-none border border-slate-100'}`}>{m.parts[0].text}</div></div>))}
       </div>
-      <div className="flex gap-2 shrink-0">
-        <input 
-          className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold" 
-          placeholder="ইংরেজি প্র্যাকটিস করো..." 
-          value={input} 
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-        />
-        <STTButton onResult={setInput} lang="en-US" />
-        <button onClick={handleSubmit} className="p-4 bg-pink-600 text-white rounded-2xl shadow-lg hover:bg-pink-700 transition-all"><Send size={20} /></button>
-      </div>
+      <div className="flex gap-2 shrink-0"><input className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold" placeholder="ইংরেজি প্র্যাকটিস করো..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} /><STTButton onResult={setInput} lang="en-US" /><button onClick={handleSubmit} className="p-4 bg-pink-600 text-white rounded-2xl shadow-lg hover:bg-pink-700 transition-all"><Send size={20} /></button></div>
     </div>
   );
 };
@@ -810,47 +743,23 @@ const FriendChatView = ({ setLoading }: any) => {
 const HelpLineView = ({ helpMessages, setHelpMessages, userId, userName, isAdmin, adminName }: any) => {
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight);
-  }, [helpMessages]);
-
+  useEffect(() => { scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight); }, [helpMessages]);
   const handleSend = () => {
     if (!input.trim()) return;
-    const newMessage: HelpMessage = {
-      id: Date.now().toString(),
-      userId,
-      userName: isAdmin ? adminName : userName,
-      text: input,
-      timestamp: Date.now(),
-      isAdmin
-    };
+    const newMessage: HelpMessage = { id: Date.now().toString(), userId, userName: isAdmin ? adminName : userName, text: input, timestamp: Date.now(), isAdmin };
     setHelpMessages([...helpMessages, newMessage]);
     setInput('');
   };
-
   const filteredMessages = isAdmin ? helpMessages : helpMessages.filter((m: HelpMessage) => m.userId === userId);
-
   return (
     <div className="bg-white p-6 rounded-[40px] shadow-sm border border-slate-100 flex flex-col h-[600px] animate-in slide-up">
-      <div className="flex items-center gap-4 mb-6 shrink-0">
-        <div className="p-4 bg-indigo-50 rounded-3xl text-indigo-600"><MessageSquare size={32} /></div>
-        <h2 className="text-2xl font-black text-slate-800">হেল্প লাইন</h2>
-      </div>
+      <div className="flex items-center gap-4 mb-6 shrink-0"><div className="p-4 bg-indigo-50 rounded-3xl text-indigo-600"><MessageSquare size={32} /></div><h2 className="text-2xl font-black text-slate-800">হেল্প লাইন</h2></div>
       <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-4 mb-6 p-2">
         {filteredMessages.map((m: HelpMessage) => (
-          <div key={m.id} className={`flex flex-col ${m.isAdmin === isAdmin ? 'items-end' : 'items-start'}`}>
-             <span className="text-[10px] font-black text-slate-400 mb-1 px-2">{m.userName}</span>
-             <div className={`max-w-[80%] p-4 rounded-3xl font-bold shadow-sm ${m.isAdmin === isAdmin ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-50 text-slate-700 rounded-tl-none border border-slate-100'}`}>
-                {m.text}
-             </div>
-          </div>
+          <div key={m.id} className={`flex flex-col ${m.isAdmin === isAdmin ? 'items-end' : 'items-start'}`}><span className="text-[10px] font-black text-slate-400 mb-1 px-2">{m.userName}</span><div className={`max-w-[80%] p-4 rounded-3xl font-bold shadow-sm ${m.isAdmin === isAdmin ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-50 text-slate-700 rounded-tl-none border border-slate-100'}`}>{m.text}</div></div>
         ))}
       </div>
-      <div className="flex gap-2 shrink-0">
-        <input className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold" placeholder="আপনার সমস্যাটি লিখুন..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSend()} />
-        <button onClick={handleSend} className="p-4 bg-indigo-600 text-white rounded-2xl shadow-lg hover:bg-indigo-700 transition-all"><Send size={20} /></button>
-      </div>
+      <div className="flex gap-2 shrink-0"><input className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold" placeholder="আপনার সমস্যাটি লিখুন..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSend()} /><button onClick={handleSend} className="p-4 bg-indigo-600 text-white rounded-2xl shadow-lg hover:bg-indigo-700 transition-all"><Send size={20} /></button></div>
     </div>
   );
 };
@@ -861,137 +770,19 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
   const [noticeInput, setNoticeInput] = useState('');
   const [linkTitle, setLinkTitle] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
-
-  const handleUnlock = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password === 'admin123') {
-      setIsUnlocked(true);
-      setIsAdmin(true);
-    } else {
-      alert('ভুল পাসওয়ার্ড!');
-    }
-  };
-
-  if (!isUnlocked) {
-    return (
-      <div className="bg-white p-10 rounded-[48px] shadow-2xl border border-slate-100 max-w-md mx-auto text-center space-y-8 animate-in zoom-in">
-        <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto text-indigo-600"><Key size={40} /></div>
-        <h2 className="text-3xl font-black text-slate-800">অ্যাডমিন লগইন</h2>
-        <form onSubmit={handleUnlock} className="space-y-6">
-          <input type="password" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold" placeholder="পাসওয়ার্ড লিখুন" value={password} onChange={e => setPassword(e.target.value)} />
-          <button className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-xl shadow-lg border-b-4 border-indigo-900 active:border-b-0 active:translate-y-1">লগইন</button>
-        </form>
-      </div>
-    );
-  }
-
-  const addNotice = () => {
-    if (!noticeInput.trim()) return;
-    setNotices([...notices, { id: Date.now().toString(), text: noticeInput, timestamp: Date.now() }]);
-    setNoticeInput('');
-  };
-
-  const addLink = () => {
-    if (!linkTitle || !linkUrl) return;
-    setStudyLinks([...studyLinks, { id: Date.now().toString(), title: linkTitle, url: linkUrl, date: new Date().toLocaleDateString() }]);
-    setLinkTitle(''); setLinkUrl('');
-  };
-
-  const handleBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setHomeBanner(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const toggleUserBlock = (id: string) => {
-    setAllUsers((prev: UserProfile[]) => prev.map(u => u.id === id ? { ...u, isBlocked: !u.isBlocked } : u));
-  };
-
+  const handleUnlock = (e: React.FormEvent) => { e.preventDefault(); if (password === 'admin123') { setIsUnlocked(true); setIsAdmin(true); } else alert('ভুল পাসওয়ার্ড!'); };
+  if (!isUnlocked) return (<div className="bg-white p-10 rounded-[48px] shadow-2xl border border-slate-100 max-w-md mx-auto text-center space-y-8 animate-in zoom-in"><div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto text-indigo-600"><Key size={40} /></div><h2 className="text-3xl font-black text-slate-800">অ্যাডমিন লগইন</h2><form onSubmit={handleUnlock} className="space-y-6"><input type="password" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold" placeholder="পাসওয়ার্ড লিখুন" value={password} onChange={e => setPassword(e.target.value)} /><button className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-xl shadow-lg border-b-4 border-indigo-900 active:border-b-0 active:translate-y-1">লগইন</button></form></div>);
+  const addNotice = () => { if (!noticeInput.trim()) return; setNotices([...notices, { id: Date.now().toString(), text: noticeInput, timestamp: Date.now() }]); setNoticeInput(''); };
+  const addLink = () => { if (!linkTitle || !linkUrl) return; setStudyLinks([...studyLinks, { id: Date.now().toString(), title: linkTitle, url: linkUrl, date: new Date().toLocaleDateString() }]); setLinkTitle(''); setLinkUrl(''); };
+  const handleBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => setHomeBanner(reader.result as string); reader.readAsDataURL(file); } };
+  const toggleUserBlock = (id: string) => setAllUsers((prev: UserProfile[]) => prev.map(u => u.id === id ? { ...u, isBlocked: !u.isBlocked } : u));
   return (
-    <div className="space-y-8 animate-in slide-up">
-      <div className="bg-indigo-600 p-8 rounded-[40px] text-white flex items-center justify-between shadow-xl">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-white/10 rounded-2xl"><ShieldCheck size={32} /></div>
-          <div><h2 className="text-2xl font-black">অ্যাডমিন প্যানেল</h2><p className="opacity-70 font-bold">ম্যানেজমেন্ট কন্ট্রোল</p></div>
-        </div>
-        <button onClick={() => { setIsAdmin(false); setMode(AppMode.HOME); }} className="bg-white/10 p-3 rounded-2xl hover:bg-white/20 transition-colors"><LogOut size={24} /></button>
-      </div>
-
+    <div className="space-y-8 animate-in slide-up"><div className="bg-indigo-600 p-8 rounded-[40px] text-white flex items-center justify-between shadow-xl"><div className="flex items-center gap-4"><div className="p-3 bg-white/10 rounded-2xl"><ShieldCheck size={32} /></div><div><h2 className="text-2xl font-black">অ্যাডমিন প্যানেল</h2><p className="opacity-70 font-bold">ম্যানেজমেন্ট কন্ট্রোল</p></div></div><button onClick={() => { setIsAdmin(false); setMode(AppMode.HOME); }} className="bg-white/10 p-3 rounded-2xl hover:bg-white/20 transition-colors"><LogOut size={24} /></button></div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-4">
-          <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Megaphone size={20} className="text-indigo-600" /> নোটিশ বোর্ড</h3>
-          <div className="flex gap-2">
-            <input className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 outline-none font-bold" placeholder="নতুন নোটিশ..." value={noticeInput} onChange={e => setNoticeInput(e.target.value)} />
-            <button onClick={addNotice} className="bg-indigo-600 text-white p-4 rounded-2xl shadow-md"><PlusCircle size={20} /></button>
-          </div>
-          <div className="space-y-2 max-h-[200px] overflow-y-auto">
-            {notices.map((n: Notice) => (
-              <div key={n.id} className="p-4 bg-slate-50 rounded-2xl flex items-center justify-between border border-slate-100 group">
-                <p className="text-sm font-bold text-slate-700">{n.text}</p>
-                <button onClick={() => setNotices(notices.filter((not: Notice) => not.id !== n.id))} className="text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-4">
-          <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><LinkIcon size={20} className="text-indigo-600" /> স্টাডি লিঙ্ক</h3>
-          <input className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 outline-none font-bold" placeholder="শিরোনাম" value={linkTitle} onChange={e => setLinkTitle(e.target.value)} />
-          <div className="flex gap-2">
-            <input className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 outline-none font-bold" placeholder="URL" value={linkUrl} onChange={e => setLinkUrl(e.target.value)} />
-            <button onClick={addLink} className="bg-indigo-600 text-white p-4 rounded-2xl shadow-md"><PlusCircle size={20} /></button>
-          </div>
-          <div className="space-y-2 max-h-[200px] overflow-y-auto">
-            {studyLinks.map((l: StudyLink) => (
-              <div key={l.id} className="p-4 bg-slate-50 rounded-2xl flex items-center justify-between border border-slate-100 group">
-                <span className="text-sm font-bold text-slate-700 truncate mr-4">{l.title}</span>
-                <button onClick={() => setStudyLinks(studyLinks.filter((lnk: StudyLink) => lnk.id !== l.id))} className="text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-4">
-          <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Settings size={20} className="text-indigo-600" /> হোম ব্যানার</h3>
-          <div className="flex flex-col gap-4">
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {BANNER_SIZES.map(s => (
-                <button key={s} onClick={() => setHomeBannerSize(s)} className={`whitespace-nowrap px-4 py-2 rounded-xl text-[10px] font-black border transition-all ${homeBannerSize === s ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>{s}</button>
-              ))}
-            </div>
-            <div className="relative border-4 border-dashed border-slate-100 rounded-3xl p-8 text-center bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer group">
-              <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" onChange={handleBannerUpload} />
-              <div className="flex flex-col items-center gap-2">
-                <Camera size={32} className="text-slate-300 group-hover:text-indigo-600 transition-colors" />
-                <span className="text-xs font-black text-slate-400">আপলোড ইমেজ</span>
-              </div>
-            </div>
-            {homeBanner && (
-              <div className="relative rounded-2xl overflow-hidden group border border-slate-100">
-                <img src={homeBanner} className="w-full h-20 object-cover" />
-                <button onClick={() => setHomeBanner(null)} className="absolute inset-0 bg-black/40 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"><Trash2 size={20} /></button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-4">
-          <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Users size={20} className="text-indigo-600" /> ইউজার ম্যানেজমেন্ট</h3>
-          <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
-            {allUsers.map((u: UserProfile) => (
-              <div key={u.id} className="p-4 bg-slate-50 rounded-2xl flex items-center justify-between border border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-lg">{AVATARS[u.points % AVATARS.length]}</div>
-                  <div><p className="text-sm font-black text-slate-700">{u.name}</p><p className="text-[10px] text-slate-400 font-bold">@{u.username} • {u.points} pts</p></div>
-                </div>
-                <button onClick={() => toggleUserBlock(u.id)} className={`p-2 rounded-xl transition-colors ${u.isBlocked ? 'bg-red-50 text-red-500' : 'bg-slate-100 text-slate-400 hover:text-red-500'}`}>{u.isBlocked ? <ShieldAlert size={18} /> : <ShieldOff size={18} />}</button>
-              </div>
-            ))}
-          </div>
-        </div>
+        <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-4"><h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Megaphone size={20} className="text-indigo-600" /> নোটিশ বোর্ড</h3><div className="flex gap-2"><input className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 outline-none font-bold" placeholder="নতুন নোটিশ..." value={noticeInput} onChange={e => setNoticeInput(e.target.value)} /><button onClick={addNotice} className="bg-indigo-600 text-white p-4 rounded-2xl shadow-md"><PlusCircle size={20} /></button></div><div className="space-y-2 max-h-[200px] overflow-y-auto">{notices.map((n: Notice) => (<div key={n.id} className="p-4 bg-slate-50 rounded-2xl flex items-center justify-between border border-slate-100 group"><p className="text-sm font-bold text-slate-700">{n.text}</p><button onClick={() => setNotices(notices.filter((not: Notice) => not.id !== n.id))} className="text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={16} /></button></div>))}</div></div>
+        <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-4"><h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><LinkIcon size={20} className="text-indigo-600" /> স্টাডি লিঙ্ক</h3><input className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 outline-none font-bold" placeholder="শিরোনাম" value={linkTitle} onChange={e => setLinkTitle(e.target.value)} /><div className="flex gap-2"><input className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 outline-none font-bold" placeholder="URL" value={linkUrl} onChange={e => setLinkUrl(e.target.value)} /><button onClick={addLink} className="bg-indigo-600 text-white p-4 rounded-2xl shadow-md"><PlusCircle size={20} /></button></div><div className="space-y-2 max-h-[200px] overflow-y-auto">{studyLinks.map((l: StudyLink) => (<div key={l.id} className="p-4 bg-slate-50 rounded-2xl flex items-center justify-between border border-slate-100 group"><span className="text-sm font-bold text-slate-700 truncate mr-4">{l.title}</span><button onClick={() => setStudyLinks(studyLinks.filter((lnk: StudyLink) => lnk.id !== l.id))} className="text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={16} /></button></div>))}</div></div>
+        <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-4"><h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Settings size={20} className="text-indigo-600" /> হোম ব্যানার</h3><div className="flex flex-col gap-4"><div className="flex gap-2 overflow-x-auto pb-2">{BANNER_SIZES.map(s => (<button key={s} onClick={() => setHomeBannerSize(s)} className={`whitespace-nowrap px-4 py-2 rounded-xl text-[10px] font-black border transition-all ${homeBannerSize === s ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>{s}</button>))}</div><div className="relative border-4 border-dashed border-slate-100 rounded-3xl p-8 text-center bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer group"><input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" onChange={handleBannerUpload} /><div className="flex flex-col items-center gap-2"><Camera size={32} className="text-slate-300 group-hover:text-indigo-600 transition-colors" /><span className="text-xs font-black text-slate-400">আপলোড ইমেজ</span></div></div>{homeBanner && (<div className="relative rounded-2xl overflow-hidden group border border-slate-100"><img src={homeBanner} className="w-full h-20 object-cover" /><button onClick={() => setHomeBanner(null)} className="absolute inset-0 bg-black/40 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"><Trash2 size={20} /></button></div>)}</div></div>
+        <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-4"><h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Users size={20} className="text-indigo-600" /> ইউজার ম্যানেজমেন্ট</h3><div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">{allUsers.map((u: UserProfile) => (<div key={u.id} className="p-4 bg-slate-50 rounded-2xl flex items-center justify-between border border-slate-100"><div className="flex items-center gap-3"><div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-lg">{AVATARS[u.points % AVATARS.length]}</div><div><p className="text-sm font-black text-slate-700">{u.name}</p><p className="text-[10px] text-slate-400 font-bold">@{u.username} • {u.points} pts</p></div></div><button onClick={() => toggleUserBlock(u.id)} className={`p-2 rounded-xl transition-colors ${u.isBlocked ? 'bg-red-50 text-red-500' : 'bg-slate-100 text-slate-400 hover:text-red-500'}`}>{u.isBlocked ? <ShieldAlert size={18} /> : <ShieldOff size={18} />}</button></div>))}</div></div>
       </div>
     </div>
   );
@@ -1000,106 +791,26 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
 const GoalView = ({ addPoints, updateCount, currentCount, setLoading }: any) => {
   const [input, setInput] = useState('');
   const [result, setResult] = useState<string | null>(null);
-
-  const handleSubmit = async () => {
-    if (!input.trim() || currentCount >= 3) return;
-    setLoading(true);
-    try {
-      const res = await checkDailyGoal(input);
-      if (res?.includes("SUCCESS")) {
-        addPoints(10);
-        updateCount();
-        setResult("অসাধারণ! তুমি ১০ পয়েন্ট জিতেছো।");
-        setInput('');
-      } else {
-        setResult(res || "ভুল হয়েছে, আবার চেষ্টা করো!");
-      }
-    } catch (e) {
-      setResult("দুঃখিত, কোনো সমস্যা হয়েছে।");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  const handleSubmit = async () => { if (!input.trim() || currentCount >= 3) return; setLoading(true); try { const res = await checkDailyGoal(input); if (res?.includes("SUCCESS")) { addPoints(10); updateCount(); setResult("অসাধারণ! তুমি ১০ পয়েন্ট জিতেছো।"); setInput(''); } else setResult(res || "ভুল হয়েছে, আবার চেষ্টা করো!"); } catch (e) { setResult("দুঃখিত, কোনো সমস্যা হয়েছে।"); } finally { setLoading(false); } };
   return (
-    <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-8 animate-in slide-up text-center">
-      <div className="w-24 h-24 bg-yellow-50 rounded-[36px] flex items-center justify-center mx-auto text-yellow-500 shadow-inner border border-yellow-100"><Star size={48} fill="currentColor" /></div>
-      <div className="space-y-2">
-        <h2 className="text-3xl font-black text-slate-800">আজকের লক্ষ্য</h2>
-        <p className="text-slate-400 font-bold max-w-sm mx-auto">একটি ইংরেজি বাক্য বলুন বা লিখুন। সঠিক হলে ১০ পয়েন্ট বোনাস!</p>
-      </div>
-      <div className="bg-slate-50 p-6 rounded-3xl border-2 border-slate-100">
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">আজকের অগ্রগতি</span>
-          <span className="text-xl font-black text-indigo-600">{currentCount}/3</span>
-        </div>
-        <div className="w-full h-3 bg-white rounded-full overflow-hidden border border-slate-100 shadow-inner">
-          <div className="h-full bg-indigo-600 transition-all" style={{ width: `${(currentCount / 3) * 100}%` }}></div>
-        </div>
-      </div>
-      <div className="relative">
-        <textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none min-h-[120px] font-bold shadow-inner text-center text-xl" placeholder="আপনার বাক্যটি লিখুন..." value={input} onChange={e => setInput(e.target.value)} disabled={currentCount >= 3} />
-        <div className="absolute bottom-4 right-4"><STTButton onResult={setInput} lang="en-US" /></div>
-      </div>
+    <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-8 animate-in slide-up text-center"><div className="w-24 h-24 bg-yellow-50 rounded-[36px] flex items-center justify-center mx-auto text-yellow-500 shadow-inner border border-yellow-100"><Star size={48} fill="currentColor" /></div>
+      <div className="space-y-2"><h2 className="text-3xl font-black text-slate-800">আজকের লক্ষ্য</h2><p className="text-slate-400 font-bold max-w-sm mx-auto">একটি ইংরেজি বাক্য বলুন বা লিখুন। সঠিক হলে ১০ পয়েন্ট বোনাস!</p></div>
+      <div className="bg-slate-50 p-6 rounded-3xl border-2 border-slate-100"><div className="flex items-center justify-between mb-4"><span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">আজকের অগ্রগতি</span><span className="text-xl font-black text-indigo-600">{currentCount}/3</span></div><div className="w-full h-3 bg-white rounded-full overflow-hidden border border-slate-100 shadow-inner"><div className="h-full bg-indigo-600 transition-all" style={{ width: `${(currentCount / 3) * 100}%` }}></div></div></div>
+      <div className="relative"><textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none min-h-[120px] font-bold shadow-inner text-center text-xl" placeholder="আপনার বাক্যটি লিখুন..." value={input} onChange={e => setInput(e.target.value)} disabled={currentCount >= 3} /><div className="absolute bottom-4 right-4"><STTButton onResult={setInput} lang="en-US" /></div></div>
       <button onClick={handleSubmit} disabled={!input.trim() || currentCount >= 3} className="w-full bg-indigo-600 text-white py-6 rounded-3xl font-black text-xl shadow-xl hover:bg-indigo-700 transition-colors border-b-4 border-indigo-900 active:border-b-0 active:translate-y-1 disabled:opacity-50">চেক করুন ও পয়েন্ট জিতুন</button>
       {result && <div className={`p-6 rounded-3xl font-bold ${result.includes('অসাধারণ') ? 'bg-green-50 text-green-700 border-green-100' : 'bg-red-50 text-red-600 border-red-100'} border animate-in zoom-in`}>{result}</div>}
-      {currentCount >= 3 && <p className="text-indigo-600 font-black italic">"অভিনন্দন! আজকের সকল লক্ষ্য পূরণ হয়েছে।"</p>}
     </div>
   );
 };
 
 const ProfileView = ({ profile, setProfile, stats, onLogout }: any) => {
   if (!profile) return null;
-
   return (
-    <div className="space-y-8 animate-in slide-up">
-      <div className="bg-white p-10 rounded-[48px] shadow-sm border border-slate-100 relative overflow-hidden text-center">
-        <div className="absolute top-0 left-0 w-full h-32 bg-indigo-600"></div>
-        <div className="relative pt-8">
-           <div className="w-32 h-32 rounded-[48px] border-8 border-white shadow-2xl mx-auto overflow-hidden bg-white mb-6">
-              {profile.photoUrl ? <img src={profile.photoUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-6xl bg-indigo-50">{AVATARS[profile.points % AVATARS.length]}</div>}
-           </div>
-           <h2 className="text-3xl font-black text-slate-800">{profile.name}</h2>
-           <p className="text-slate-400 font-bold italic mt-1">@{profile.username}</p>
-        </div>
-
-        <div className="grid grid-cols-3 gap-4 mt-10">
-          <div className="bg-indigo-50 p-6 rounded-[32px] border border-indigo-100">
-             <Trophy className="mx-auto text-indigo-600 mb-2" size={24} />
-             <p className="text-xl font-black text-indigo-900">{profile.points}</p>
-             <p className="text-[10px] font-black text-indigo-400 uppercase">পয়েন্ট</p>
-          </div>
-          <div className="bg-rose-50 p-6 rounded-[32px] border border-rose-100">
-             <TrendingUp className="mx-auto text-rose-600 mb-2" size={24} />
-             <p className="text-xl font-black text-rose-900">{profile.streak || 0}</p>
-             <p className="text-[10px] font-black text-rose-400 uppercase">স্ট্রাইক</p>
-          </div>
-          <div className="bg-amber-50 p-6 rounded-[32px] border border-amber-100">
-             <Award className="mx-auto text-amber-600 mb-2" size={24} />
-             <p className="text-xl font-black text-amber-900">{Math.floor(profile.points / 50) + 1}</p>
-             <p className="text-[10px] font-black text-amber-400 uppercase">লেভেল</p>
-          </div>
-        </div>
-
-        <div className="mt-10 p-8 bg-slate-50 rounded-[40px] border border-slate-100 text-left">
-           <h4 className="text-sm font-black text-slate-400 uppercase mb-4 flex items-center gap-2"><Info size={16} /> স্ট্যাটিস্টিকস</h4>
-           <div className="space-y-6">
-              <div>
-                <div className="flex justify-between text-xs font-black text-slate-600 mb-2"><span>র‍্যাঙ্ক: {stats.level}</span><span>{profile.points}/{stats.nextThreshold}</span></div>
-                <div className="w-full h-4 bg-white rounded-full border border-slate-200 p-0.5 shadow-inner"><div className="h-full bg-indigo-600 rounded-full transition-all shadow-[0_0_10px_rgba(79,70,229,0.3)]" style={{ width: `${stats.progress}%` }}></div></div>
-              </div>
-              <div className="flex items-center gap-4 text-slate-600 font-bold">
-                <Clock size={18} className="text-indigo-400" />
-                <span>যোগদান করেছেন: {profile.joinDate}</span>
-              </div>
-           </div>
-        </div>
-
-        <div className="mt-8 flex gap-4">
-          <button onClick={onLogout} className="flex-1 bg-rose-50 text-rose-600 py-5 rounded-[28px] font-black shadow-sm hover:bg-rose-100 transition-colors flex items-center justify-center gap-2 border border-rose-100"><LogOut size={20} /> লগ আউট</button>
-        </div>
-      </div>
-    </div>
+    <div className="space-y-8 animate-in slide-up"><div className="bg-white p-10 rounded-[48px] shadow-sm border border-slate-100 relative overflow-hidden text-center"><div className="absolute top-0 left-0 w-full h-32 bg-indigo-600"></div><div className="relative pt-8"><div className="w-32 h-32 rounded-[48px] border-8 border-white shadow-2xl mx-auto overflow-hidden bg-white mb-6">{profile.photoUrl ? <img src={profile.photoUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-6xl bg-indigo-50">{AVATARS[profile.points % AVATARS.length]}</div>}</div><h2 className="text-3xl font-black text-slate-800">{profile.name}</h2><p className="text-slate-400 font-bold italic mt-1">@{profile.username}</p></div>
+        <div className="grid grid-cols-3 gap-4 mt-10"><div className="bg-indigo-50 p-6 rounded-[32px] border border-indigo-100"><Trophy className="mx-auto text-indigo-600 mb-2" size={24} /><p className="text-xl font-black text-indigo-900">{profile.points}</p><p className="text-[10px] font-black text-indigo-400 uppercase">পয়েন্ট</p></div><div className="bg-rose-50 p-6 rounded-[32px] border border-rose-100"><TrendingUp className="mx-auto text-rose-600 mb-2" size={24} /><p className="text-xl font-black text-rose-900">{profile.streak || 0}</p><p className="text-[10px] font-black text-rose-400 uppercase">স্ট্রাইক</p></div><div className="bg-amber-50 p-6 rounded-[32px] border border-amber-100"><Award className="mx-auto text-amber-600 mb-2" size={24} /><p className="text-xl font-black text-amber-900">{Math.floor(profile.points / 50) + 1}</p><p className="text-[10px] font-black text-amber-400 uppercase">লেভেল</p></div></div>
+        <div className="mt-10 p-8 bg-slate-50 rounded-[40px] border border-slate-100 text-left"><h4 className="text-sm font-black text-slate-400 uppercase mb-4 flex items-center gap-2"><Info size={16} /> স্ট্যাটিস্টিকস</h4><div className="space-y-6"><div><div className="flex justify-between text-xs font-black text-slate-600 mb-2"><span>র‍্যাঙ্ক: {stats.level}</span><span>{profile.points}/{stats.nextThreshold}</span></div><div className="w-full h-4 bg-white rounded-full border border-slate-200 p-0.5 shadow-inner"><div className="h-full bg-indigo-600 rounded-full transition-all shadow-[0_0_10px_rgba(79,70,229,0.3)]" style={{ width: `${stats.progress}%` }}></div></div></div><div className="flex items-center gap-4 text-slate-600 font-bold"><Clock size={18} className="text-indigo-400" /><span>যোগদান করেছেন: {profile.joinDate}</span></div></div></div>
+        <div className="mt-8 flex gap-4"><button onClick={onLogout} className="flex-1 bg-rose-50 text-rose-600 py-5 rounded-[28px] font-black shadow-sm hover:bg-rose-100 transition-colors flex items-center justify-center gap-2 border border-rose-100"><LogOut size={20} /> লগ আউট</button></div>
+      </div></div>
   );
 };
 
