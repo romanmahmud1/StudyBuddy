@@ -10,7 +10,18 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    target: 'esnext'
+    target: 'esnext',
+    // Suppression for the chunk size warning
+    chunkSizeWarningLimit: 2000, 
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
+        }
+      }
+    }
   },
   server: {
     port: 3000
