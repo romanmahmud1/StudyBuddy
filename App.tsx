@@ -56,7 +56,8 @@ import {
   Image as ImageIcon, 
   Quote,
   Gift,
-  Layout
+  Layout,
+  AlertTriangle
 } from 'lucide-react';
 import { AppMode, UserProfile, HelpMessage, AdminProfile, StudyLink, Notice, AdminPost } from './types';
 import { 
@@ -181,7 +182,7 @@ const App: React.FC = () => {
     return null;
   });
   const [adminProfile, setAdminProfile] = useState<AdminProfile>(() => JSON.parse(localStorage.getItem('studybuddy_admin_profile') || JSON.stringify(DEFAULT_ADMIN)));
-  const [adminPost, setAdminPost] = useState<AdminPost>(() => JSON.parse(localStorage.getItem('studybuddy_admin_post') || '{"text": "স্টাডিবাডি অ্যাপে আপনাকে স্বাগতম! এখানে আপনি আপনার পছন্দের টপিকগুলো সহজ ভাষায় শিখতে পারবেন।", "timestamp": 0}'));
+  const [adminPost, setAdminPost] = useState<AdminPost>(() => JSON.parse(localStorage.getItem('studybuddy_admin_post') || '{"text": "", "timestamp": 0}'));
   const [helpMessages, setHelpMessages] = useState<HelpMessage[]>(() => JSON.parse(localStorage.getItem('studybuddy_help') || '[]'));
   const [notices, setNotices] = useState<Notice[]>(() => JSON.parse(localStorage.getItem('studybuddy_global_notices_list') || '[]'));
   const [homeBanner, setHomeBanner] = useState<string | null>(localStorage.getItem('studybuddy_home_banner_data'));
@@ -243,6 +244,13 @@ const App: React.FC = () => {
     setCurrentUser(updatedProfile);
   };
 
+  const handleDeleteAdminPost = () => {
+    if (window.confirm("আপনি কি নিশ্চিতভাবে এই পোস্টটি ডিলিট করতে চান?")) {
+      setAdminPost({ text: "", timestamp: 0, imageUrl: undefined });
+      alert("পোস্টটি ডিলিট করা হয়েছে।");
+    }
+  };
+
   const userStats = useMemo(() => {
     if (!currentUser) return { level: "Beginner", progress: 0, nextThreshold: 100, rank: "শিক্ষানবিশ" };
     const p = currentUser.points;
@@ -260,7 +268,6 @@ const App: React.FC = () => {
   const renderHome = () => {
     if (!currentUser) return <AuthView onLogin={setCurrentUser} users={allUsers} setAllUsers={setAllUsers} />;
     
-    // Calculate aspect ratio for banner from size string (e.g., "728 x 90 px")
     const bannerDimensions = homeBannerSize.split(' x ');
     const bannerWidth = parseInt(bannerDimensions[0]);
     const bannerHeight = parseInt(bannerDimensions[1]);
@@ -300,28 +307,41 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Admin Special Announcement Bar (Post Section) */}
-        <div className="bg-white p-6 rounded-[36px] shadow-xl border border-slate-100 flex flex-col sm:flex-row items-center gap-5 transition-all hover:border-indigo-200">
-           <div className="w-20 h-20 rounded-[30px] border-2 border-white shadow-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center overflow-hidden shrink-0">
-              {adminPost.imageUrl ? (
-                <img src={adminPost.imageUrl} className="w-full h-full object-cover" />
-              ) : (
-                <Sparkles className="text-white" size={32} />
-              )}
-           </div>
-           <div className="flex-1 text-center sm:text-left space-y-1">
-              <div className="flex items-center justify-center sm:justify-start gap-2">
-                <div className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-indigo-100">অ্যাডমিন মেসেজ</div>
-              </div>
-              <p className="text-xs font-bold text-slate-600 leading-relaxed line-clamp-3">
-                {adminPost.text}
-              </p>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">স্টাডিবাডি টিম আপডেট</p>
-           </div>
-           <div className="hidden sm:block p-3 bg-slate-50 rounded-2xl border border-slate-100">
-             <Quote size={20} className="text-indigo-200" />
-           </div>
-        </div>
+        {/* Admin Special Announcement Bar (Post Section) - Conditional Rendering */}
+        {adminPost.text && adminPost.text.trim() !== "" && (
+          <div className="bg-white p-6 rounded-[36px] shadow-xl border border-slate-100 flex flex-col sm:flex-row items-center gap-5 transition-all hover:border-indigo-200 relative group">
+             <div className="w-20 h-20 rounded-[30px] border-2 border-white shadow-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center overflow-hidden shrink-0">
+                {adminPost.imageUrl ? (
+                  <img src={adminPost.imageUrl} className="w-full h-full object-cover" />
+                ) : (
+                  <Sparkles className="text-white" size={32} />
+                )}
+             </div>
+             <div className="flex-1 text-center sm:text-left space-y-1">
+                <div className="flex items-center justify-center sm:justify-start gap-2">
+                  <div className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-indigo-100">অ্যাডমিন মেসেজ</div>
+                </div>
+                <p className="text-xs font-bold text-slate-600 leading-relaxed line-clamp-3">
+                  {adminPost.text}
+                </p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">স্টাডিবাডি টিম আপডেট</p>
+             </div>
+             <div className="hidden sm:block p-3 bg-slate-50 rounded-2xl border border-slate-100">
+               <Quote size={20} className="text-indigo-200" />
+             </div>
+             
+             {/* Admin Delete Action directly on Home */}
+             {isAdmin && (
+               <button 
+                 onClick={(e) => { e.stopPropagation(); handleDeleteAdminPost(); }} 
+                 className="absolute -top-2 -right-2 p-2 bg-rose-600 text-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 active:scale-95 z-20"
+                 title="পোস্ট ডিলিট করুন"
+               >
+                 <Trash2 size={16} />
+               </button>
+             )}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           <MenuButton icon={<BookOpen size={28} />} title="সহজ পড়া মোড" color="blue" desc="টপিক গল্পের মতো বুঝে নাও" onClick={() => changeMode(AppMode.STUDY)} />
@@ -334,7 +354,7 @@ const App: React.FC = () => {
           <MenuButton icon={<Type size={28} />} title="সঠিক বানান শিখুন" color="cyan" desc="ভুল বানান চেক করো" onClick={() => changeMode(AppMode.SPELLING)} />
         </div>
 
-        {/* Daily Reward Section - Added Above Admin Banner */}
+        {/* Daily Reward Section */}
         <div 
           onClick={() => changeMode(AppMode.DAILY_REWARD)} 
           className={`relative group overflow-hidden ${isRewardCompleted ? 'bg-green-600' : 'bg-gradient-to-br from-yellow-400 to-orange-500'} rounded-[48px] p-8 border-4 border-white shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 cursor-pointer hover:scale-[1.02] transition-all`}
@@ -365,7 +385,34 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Developer/Admin Banner - Dynamic Content, Moved to Bottom */}
+        {/* Study Links Section */}
+        {studyLinks.length > 0 && (
+          <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6">
+            <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><LinkIcon className="text-indigo-600" size={20} /> গুরুত্বপূর্ণ লিংকসমূহ</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {studyLinks.slice().reverse().map((link) => (
+                <a 
+                  key={link.id} 
+                  href={link.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/30 transition-all group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-white rounded-2xl shadow-sm group-hover:scale-110 transition-transform"><ExternalLink size={18} className="text-indigo-600" /></div>
+                    <div>
+                      <p className="font-black text-slate-800 text-sm leading-tight">{link.title}</p>
+                      <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">{link.date}</p>
+                    </div>
+                  </div>
+                  <ArrowLeft size={16} className="rotate-180 text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Developer/Admin Banner */}
         <div className="relative group overflow-hidden bg-slate-900 rounded-[48px] p-8 border border-white/10 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 transition-all hover:border-indigo-500/50">
           <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/20 to-purple-600/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
           <div className="absolute -top-24 -left-24 w-48 h-48 bg-indigo-500/20 rounded-full blur-3xl group-hover:bg-indigo-500/30 transition-all"></div>
@@ -398,9 +445,12 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       <header className="bg-white/90 backdrop-blur-md shadow-md p-4 sticky top-0 z-50 border-b border-indigo-50">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div onClick={() => changeMode(AppMode.HOME)} className="flex items-center gap-3 cursor-pointer">
-            <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg"><BookOpen size={24} /></div>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight">স্টাডিবাডি</h1>
+          <div onClick={() => changeMode(AppMode.HOME)} className="flex items-center gap-3 cursor-pointer group">
+            <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:rotate-6 transition-transform"><BookOpen size={24} /></div>
+            <div>
+              <h1 className="text-2xl font-black text-slate-800 tracking-tight leading-none">স্টাডিবাডি</h1>
+              <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">আপনার পড়াশোনার বন্ধু</p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <button onClick={() => changeMode(AppMode.ADMIN)} className="p-3 bg-white border border-slate-100 text-slate-400 hover:text-indigo-600 rounded-2xl shadow-sm transition-all"><ShieldCheck size={22} /></button>
@@ -477,7 +527,10 @@ const AuthView = ({ onLogin, users, setAllUsers }: any) => {
     <div className="flex items-center justify-center p-4 min-h-[60vh] animate-in zoom-in">
       <div className="bg-white p-10 rounded-[48px] shadow-2xl w-full max-w-md space-y-8 text-center border">
         <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto text-indigo-600">{isLogin ? <LogIn size={40} /> : <UserPlus size={40} />}</div>
-        <h2 className="text-3xl font-black">{isLogin ? 'লগইন' : 'রেজিস্ট্রেশন'}</h2>
+        <div className="space-y-2">
+          <h2 className="text-3xl font-black">{isLogin ? 'StuddyBuddy তে লগইন করুন' : 'StuddyBuddy তে রেজিস্ট্রেশন করুন'}</h2>
+          <p className="text-sm font-bold text-slate-400 italic">আপনার শেখার যাত্রাকে আরও সহজ ও আনন্দদায়ক করুন</p>
+        </div>
         <form onSubmit={handleSubmit} className="space-y-4 text-left">
           {!isLogin && (
             <>
@@ -779,20 +832,16 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
   const [password, setPassword] = useState('');
   const [isUnlocked, setIsUnlocked] = useState(isAdmin);
   const [noticeInput, setNoticeInput] = useState('');
-  const [postTextInput, setPostTextInput] = useState(adminPost.text);
+  const [linkTitle, setLinkTitle] = useState('');
+  const [linkUrl, setLinkUrl] = useState('');
+  const [postTextInput, setPostTextInput] = useState(adminPost.text || '');
   const [postImgInput, setPostImgInput] = useState<string | null>(adminPost.imageUrl || null);
   const [profNameInput, setProfNameInput] = useState(adminProfile.name);
   const [profEmailInput, setProfEmailInput] = useState(adminProfile.email);
   const [profPhotoInput, setProfPhotoInput] = useState<string | null>(adminProfile.photoUrl || null);
   
   const BANNER_SIZES = [
-    "728 x 90 px",
-    "300 x 250 px",
-    "336 x 280 px",
-    "160 x 600 px",
-    "300 x 600 px",
-    "320 x 50 px",
-    "320 x 100 px"
+    "728 x 90 px", "300 x 250 px", "336 x 280 px", "160 x 600 px", "300 x 600 px", "320 x 50 px", "320 x 100 px"
   ];
 
   const handleLogin = (e: React.FormEvent) => {
@@ -802,7 +851,7 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
       setIsAdmin(true);
       localStorage.setItem('studybuddy_is_admin', 'true');
     } else {
-      alert("ভুল আইডি বা পাসওয়ার্ড! সঠিক আইডি ও পাসওয়ার্ড ব্যবহার করুন।");
+      alert("ভুল হয়েছে সঠিক ইউজার আইডি ও পাসওয়ার্ড প্রদান করুন");
     }
   };
 
@@ -810,9 +859,7 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setPostImgInput(reader.result as string);
-      };
+      reader.onloadend = () => setPostImgInput(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
@@ -821,9 +868,7 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfPhotoInput(reader.result as string);
-      };
+      reader.onloadend = () => setProfPhotoInput(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
@@ -832,46 +877,58 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setHomeBanner(reader.result as string);
-      };
+      reader.onloadend = () => setHomeBanner(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
 
   const handleUpdatePost = () => {
-    setAdminPost({
-      text: postTextInput,
-      imageUrl: postImgInput || undefined,
-      timestamp: Date.now()
-    });
-    alert("অ্যাডমিন পোস্ট আপডেট হয়েছে!");
+    setAdminPost({ text: postTextInput, imageUrl: postImgInput || undefined, timestamp: Date.now() });
+    alert("পোস্ট সফলভাবে সম্পন্ন হয়েছে!");
+  };
+
+  const handleDeletePostInternal = () => {
+    if (window.confirm("আপনি কি নিশ্চিতভাবে এই পোস্টটি ডিলিট করতে চান?")) {
+      setAdminPost({ text: "", timestamp: 0, imageUrl: undefined });
+      setPostTextInput("");
+      setPostImgInput(null);
+      alert("অ্যাডমিন পোস্ট ডিলিট হয়েছে!");
+    }
   };
 
   const handleUpdateProfile = () => {
-    setAdminProfile({
-      name: profNameInput,
-      email: profEmailInput,
-      photoUrl: profPhotoInput || undefined
-    });
+    setAdminProfile({ name: profNameInput, email: profEmailInput, photoUrl: profPhotoInput || undefined });
     alert("অ্যাডমিন প্রোফাইল আপডেট হয়েছে!");
+  };
+
+  const handleAddLink = () => {
+    if (!linkTitle.trim() || !linkUrl.trim()) return;
+    setStudyLinks([...studyLinks, { id: Date.now().toString(), title: linkTitle, url: linkUrl, date: new Date().toLocaleDateString('bn-BD') }]);
+    setLinkTitle('');
+    setLinkUrl('');
+    alert("লিংক সফলভাবে পোস্ট হয়েছে!");
   };
 
   if (!isUnlocked) return (
     <div className="bg-white p-10 rounded-[48px] shadow-2xl max-w-md mx-auto text-center space-y-8 animate-in zoom-in border border-indigo-50">
       <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto text-indigo-600"><Shield size={40} /></div>
-      <div className="space-y-2">
+      <div className="space-y-4">
         <h2 className="text-3xl font-black text-slate-800">অ্যাডমিন ড্যাশবোর্ড</h2>
-        <p className="text-xs font-bold text-slate-400">অ্যাডমিন আইডি ও পাসওয়ার্ড ব্যবহার করুন</p>
+        <div className="p-4 bg-rose-50 border-2 border-rose-100 rounded-3xl flex items-start gap-3 text-left">
+           <AlertTriangle size={24} className="text-rose-500 shrink-0 mt-1" />
+           <p className="text-xs font-black text-rose-600 leading-relaxed uppercase tracking-tighter">
+             Admin Rimon Mahmud Roman ব্যতীত অন্য কেউ লগইন করতে পারবেন না।
+           </p>
+        </div>
       </div>
       <form onSubmit={handleLogin} className="space-y-4 text-left">
         <div className="space-y-1">
-          <label className="text-[10px] font-black text-slate-400 uppercase ml-2">অ্যাডমিন আইডি</label>
-          <input className="w-full bg-slate-50 border-2 rounded-2xl px-6 py-4 font-bold outline-none border-slate-100 focus:border-indigo-600" placeholder="Rimon" value={adminIdInput} onChange={e => setAdminIdInput(e.target.value)} required />
+          <label className="text-[10px] font-black text-slate-400 uppercase ml-2">ইউজার আইডি</label>
+          <input className="w-full bg-slate-50 border-2 rounded-2xl px-6 py-4 font-bold outline-none border-slate-100 focus:border-indigo-600" placeholder="" value={adminIdInput} onChange={e => setAdminIdInput(e.target.value)} required />
         </div>
         <div className="space-y-1">
           <label className="text-[10px] font-black text-slate-400 uppercase ml-2">পাসওয়ার্ড</label>
-          <input className="w-full bg-slate-50 border-2 rounded-2xl px-6 py-4 font-bold outline-none border-slate-100 focus:border-indigo-600" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required />
+          <input className="w-full bg-slate-50 border-2 rounded-2xl px-6 py-4 font-bold outline-none border-slate-100 focus:border-indigo-600" type="password" placeholder="" value={password} onChange={e => setPassword(e.target.value)} required />
         </div>
         <button type="submit" className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-xl shadow-lg hover:bg-indigo-700 transition-all active:scale-[0.98]">প্যানেল আনলক করুন</button>
       </form>
@@ -913,20 +970,15 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
         ))}
       </div>
 
-      {/* Home Banner Management Section */}
       <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm space-y-6">
-        <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Layout className="text-indigo-600" /> হোম পেজ ব্যানার ম্যানেজমেন্ট</h3>
+        <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Layout className="text-indigo-600" size={20} /> হোম পেজ ব্যানার ম্যানেজমেন্ট</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-6">
             <div className="space-y-1">
               <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">ব্যানার সাইজ সিলেক্ট করুন</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {BANNER_SIZES.map(size => (
-                  <button
-                    key={size}
-                    onClick={() => setHomeBannerSize(size)}
-                    className={`px-4 py-3 rounded-2xl text-xs font-black transition-all border-2 ${homeBannerSize === size ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-100' : 'bg-slate-50 text-slate-500 border-slate-100 hover:border-indigo-200'}`}
-                  >
+                  <button key={size} onClick={() => setHomeBannerSize(size)} className={`px-4 py-3 rounded-2xl text-xs font-black transition-all border-2 ${homeBannerSize === size ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-100' : 'bg-slate-50 text-slate-500 border-slate-100 hover:border-indigo-200'}`}>
                     {size}
                   </button>
                 ))}
@@ -949,16 +1001,38 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
                 )}
                 <input id="home-banner-upload" type="file" className="hidden" accept="image/*" onChange={handleHomeBannerUpload} />
              </div>
-             {homeBanner && (
-               <button onClick={() => setHomeBanner(null)} className="w-full py-3 bg-rose-50 text-rose-600 font-black text-xs rounded-2xl border border-rose-100 hover:bg-rose-100 transition-all">ব্যানার ডিলিট করুন</button>
-             )}
+             {homeBanner && <button onClick={() => setHomeBanner(null)} className="w-full py-3 bg-rose-50 text-rose-600 font-black text-xs rounded-2xl border border-rose-100 hover:bg-rose-100 transition-all">ব্যানার ডিলিট করুন</button>}
           </div>
         </div>
       </div>
 
-      {/* Admin Profile & Developer Banner Management */}
       <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm space-y-6">
-        <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><User className="text-indigo-600" /> অ্যাডমিন প্রোফাইল এডিট</h3>
+        <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><LinkIcon className="text-indigo-600" size={20} /> লিংক ম্যানেজমেন্ট</h3>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <input className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-3.5 outline-none font-bold focus:border-indigo-600" placeholder="লিংকের শিরোনাম" value={linkTitle} onChange={e => setLinkTitle(e.target.value)} />
+            <input className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-3.5 outline-none font-bold focus:border-indigo-600" placeholder="ইউআরএল (https://...)" value={linkUrl} onChange={e => setLinkUrl(e.target.value)} />
+          </div>
+          <button onClick={handleAddLink} className="w-full bg-indigo-600 text-white py-4 rounded-[28px] font-black text-lg shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+            <PlusCircle size={20}/> নতুন লিংক যুক্ত করুন
+          </button>
+        </div>
+        <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
+          {studyLinks.map((l) => (
+            <div key={l.id} className="p-4 bg-slate-50 rounded-2xl flex items-center justify-between border border-slate-100">
+              <div className="flex-1 truncate mr-4">
+                <p className="text-sm font-black text-slate-800 truncate">{l.title}</p>
+                <p className="text-[10px] text-indigo-600 font-bold truncate">{l.url}</p>
+              </div>
+              <button onClick={() => setStudyLinks(studyLinks.filter(x => x.id !== l.id))} className="text-slate-300 hover:text-rose-500 transition-colors p-2"><Trash2 size={18}/></button>
+            </div>
+          ))}
+          {studyLinks.length === 0 && <p className="text-center py-8 text-slate-300 font-bold">কোনো লিংক নেই</p>}
+        </div>
+      </div>
+
+      <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm space-y-6">
+        <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><User className="text-indigo-600" size={20} /> অ্যাডমিন প্রোফাইল এডিট</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div className="space-y-1">
@@ -973,11 +1047,7 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
           <div className="space-y-4">
             <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">ব্যানার লোগো / ছবি</label>
             <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-[32px] p-6 hover:border-indigo-400 transition-all cursor-pointer bg-slate-50/50" onClick={() => document.getElementById('prof-photo-img')?.click()}>
-              {profPhotoInput ? (
-                <img src={profPhotoInput} className="w-24 h-24 rounded-2xl object-cover shadow-md" />
-              ) : (
-                <ImageIcon size={32} className="text-slate-300 mb-2" />
-              )}
+              {profPhotoInput ? <img src={profPhotoInput} className="w-24 h-24 rounded-2xl object-cover shadow-md" /> : <ImageIcon size={32} className="text-slate-300 mb-2" />}
               <p className="text-xs font-bold text-slate-500 mt-2">ছবি পরিবর্তন করুন</p>
               <input type="file" id="prof-photo-img" className="hidden" accept="image/*" onChange={handleProfPhotoChange} />
             </div>
@@ -988,44 +1058,34 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
         </button>
       </div>
 
-      {/* Admin Post Management Section */}
       <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm space-y-6">
-        <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Sparkles className="text-indigo-600" /> হোম পেজ অ্যাডমিন পোস্ট</h3>
+        <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Sparkles className="text-indigo-600" size={20} /> হোম পেজ অ্যাডমিন পোস্ট</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">পোস্টের লেখা</label>
-            <textarea 
-              className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-5 font-bold outline-none focus:border-indigo-600 min-h-[120px]"
-              value={postTextInput}
-              onChange={e => setPostTextInput(e.target.value)}
-              placeholder="হোম পেজের বার-এ কী লেখা থাকবে?"
-            />
+            <textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-5 font-bold outline-none focus:border-indigo-600 min-h-[120px]" value={postTextInput} onChange={e => setPostTextInput(e.target.value)} placeholder="হোম পেজের বার-এ কী লেখা থাকবে?" />
           </div>
           <div className="space-y-4">
             <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">পোস্টের ছবি</label>
             <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-[32px] p-6 hover:border-indigo-400 transition-all cursor-pointer bg-slate-50/50" onClick={() => document.getElementById('admin-post-img')?.click()}>
-              {postImgInput ? (
-                <img src={postImgInput} className="w-24 h-24 rounded-2xl object-cover shadow-md" />
-              ) : (
-                <ImageIcon size={32} className="text-slate-300 mb-2" />
-              )}
+              {postImgInput ? <img src={postImgInput} className="w-24 h-24 rounded-2xl object-cover shadow-md" /> : <ImageIcon size={32} className="text-slate-300 mb-2" />}
               <p className="text-xs font-bold text-slate-500 mt-2">ছবি পরিবর্তন করুন</p>
               <input type="file" id="admin-post-img" className="hidden" accept="image/*" onChange={handlePostImageChange} />
             </div>
           </div>
         </div>
-        <button onClick={handleUpdatePost} className="w-full bg-indigo-600 text-white py-4 rounded-[28px] font-black text-lg shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
-          <Save size={20}/> আপডেট নিশ্চিত করুন
-        </button>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button onClick={handleUpdatePost} className="flex-1 bg-indigo-600 text-white py-4 rounded-[28px] font-black text-lg shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+            <Save size={20}/> আপডেট নিশ্চিত করুন
+          </button>
+          <button onClick={handleDeletePostInternal} className="bg-rose-50 text-rose-600 py-4 px-8 rounded-[28px] font-black text-lg border border-rose-100 hover:bg-rose-100 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+            <Trash2 size={20}/> ডিলিট করুন
+          </button>
+        </div>
       </div>
 
       <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm space-y-6">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Users className="text-indigo-600" /> ইউজার তালিকা (পাসওয়ার্ড দৃশ্যমান)</h3>
-          <div className="flex gap-2">
-            <span className="text-[10px] font-black px-3 py-1.5 bg-green-50 text-green-600 rounded-full border border-green-100">রিয়েল-টাইম</span>
-          </div>
-        </div>
+        <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Users className="text-indigo-600" size={20} /> ইউজার তালিকা (পাসওয়ার্ড দৃশ্যমান)</h3>
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-left border-separate border-spacing-0">
             <thead>
@@ -1044,10 +1104,7 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
                       <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg shadow-inner overflow-hidden">
                         {u.photoUrl ? <img src={u.photoUrl} className="w-full h-full object-cover" /> : AVATARS[u.points % AVATARS.length]}
                       </div>
-                      <div>
-                        <p className="font-black text-sm text-slate-800">{u.name}</p>
-                        <p className="text-[10px] font-bold text-slate-400">@{u.username}</p>
-                      </div>
+                      <div><p className="font-black text-sm text-slate-800">{u.name}</p><p className="text-[10px] font-bold text-slate-400">@{u.username}</p></div>
                     </div>
                   </td>
                   <td className="py-5 px-4">
@@ -1056,27 +1113,15 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
                       <button onClick={() => { navigator.clipboard.writeText(u.password || ''); alert('Password copied!'); }} className="text-slate-300 hover:text-indigo-600 transition-colors"><Copy size={14}/></button>
                     </div>
                   </td>
-                  <td className="py-5 px-4">
-                    <div className="flex items-center gap-1 font-black text-indigo-600 text-sm">
-                      <Zap size={14} className="fill-current"/> {u.points}
-                    </div>
-                  </td>
+                  <td className="py-5 px-4"><div className="flex items-center gap-1 font-black text-indigo-600 text-sm"><Zap size={14} className="fill-current"/> {u.points}</div></td>
                   <td className="py-5 px-4 text-center">
-                    <button 
-                      onClick={() => setAllUsers(allUsers.map((x: any) => x.id === u.id ? { ...x, isBlocked: !x.isBlocked } : x))}
-                      className={`p-3 rounded-2xl transition-all shadow-sm ${u.isBlocked ? 'bg-rose-600 text-white shadow-rose-200' : 'bg-slate-100 text-slate-400 hover:text-rose-600 hover:bg-white'}`}
-                      title={u.isBlocked ? "Unblock User" : "Block User"}
-                    >
+                    <button onClick={() => setAllUsers(allUsers.map((x: any) => x.id === u.id ? { ...x, isBlocked: !x.isBlocked } : x))} className={`p-3 rounded-2xl transition-all shadow-sm ${u.isBlocked ? 'bg-rose-600 text-white shadow-rose-200' : 'bg-slate-100 text-slate-400 hover:text-rose-600 hover:bg-white'}`} title={u.isBlocked ? "Unblock User" : "Block User"}>
                       {u.isBlocked ? <ShieldAlert size={20} /> : <ShieldOff size={20} />}
                     </button>
                   </td>
                 </tr>
               ))}
-              {allUsers.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="py-12 text-center text-slate-300 font-bold italic">এখনও কোনো ইউজার নেই</td>
-                </tr>
-              )}
+              {allUsers.length === 0 && <tr><td colSpan={4} className="py-12 text-center text-slate-300 font-bold italic">এখনও কোনো ইউজার নেই</td></tr>}
             </tbody>
           </table>
         </div>
@@ -1087,15 +1132,12 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
           <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Megaphone size={22} className="text-indigo-600" /> নোটিশ বোর্ড</h3>
           <div className="flex gap-2">
             <input className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-3.5 outline-none font-bold focus:border-indigo-600" placeholder="নতুন নোটিশ লিখুন..." value={noticeInput} onChange={e => setNoticeInput(e.target.value)} />
-            <button onClick={() => { if(noticeInput.trim()){ setNotices([...notices, { id: Date.now().toString(), text: noticeInput, timestamp: Date.now() }]); setNoticeInput(''); } }} className="bg-indigo-600 text-white p-4 rounded-2xl shadow-md hover:bg-indigo-700 transition-colors active:scale-95"><PlusCircle size={22} /></button>
+            <button onClick={() => { if(noticeInput.trim()){ setNotices([...notices, { id: Date.now().toString(), text: noticeInput, timestamp: Date.now() }]); setNoticeInput(''); alert("নোটিশ সফলভাবে পোস্ট হয়েছে!"); } }} className="bg-indigo-600 text-white p-4 rounded-2xl shadow-md hover:bg-indigo-700 transition-colors active:scale-95"><PlusCircle size={22} /></button>
           </div>
           <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
             {notices.slice().reverse().map((n: any) => (
               <div key={n.id} className="p-4 bg-slate-50 rounded-2xl flex items-center justify-between border border-slate-100 group hover:border-indigo-100 transition-colors">
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-slate-700">{n.text}</p>
-                  <p className="text-[9px] text-slate-400 font-black mt-1 uppercase">{new Date(n.timestamp || parseInt(n.id)).toLocaleDateString()}</p>
-                </div>
+                <div className="flex-1"><p className="text-sm font-bold text-slate-700">{n.text}</p><p className="text-[9px] text-slate-400 font-black mt-1 uppercase">{new Date(n.timestamp || parseInt(n.id)).toLocaleDateString()}</p></div>
                 <button onClick={() => setNotices(notices.filter((x: any) => x.id !== n.id))} className="text-slate-300 hover:text-rose-500 transition-colors p-2"><Trash2 size={18}/></button>
               </div>
             ))}
@@ -1109,10 +1151,7 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
             {helpMessages.slice().reverse().map((m: any) => (
               <div key={m.id} className={`p-4 rounded-[24px] border transition-all ${m.isAdmin ? 'bg-indigo-50 border-indigo-100' : 'bg-slate-50 border-slate-100 hover:bg-white shadow-sm'}`}>
                 <div className="flex justify-between items-start mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${m.isAdmin ? 'bg-indigo-500' : 'bg-green-500'}`}></div>
-                    <span className="text-[10px] font-black uppercase text-slate-400">{m.userName} {m.isAdmin && " (অ্যাডমিন)"}</span>
-                  </div>
+                  <div className="flex items-center gap-2"><div className={`w-2 h-2 rounded-full ${m.isAdmin ? 'bg-indigo-500' : 'bg-green-500'}`}></div><span className="text-[10px] font-black uppercase text-slate-400">{m.userName} {m.isAdmin && " (অ্যাডমিন)"}</span></div>
                   <button onClick={() => setHelpMessages(helpMessages.filter((x:any) => x.id !== m.id))} className="text-slate-300 hover:text-rose-500 transition-colors"><X size={14}/></button>
                 </div>
                 <p className="text-sm font-bold text-slate-700 leading-snug">{m.text}</p>
@@ -1143,12 +1182,7 @@ const ProfileView = ({ profile, onLogout, onUpdate, stats }: any) => {
   const earnedBadges = badges.filter(b => profile.points >= b.minPoints);
 
   const handleSave = () => {
-    onUpdate({
-      ...profile,
-      name: editedName,
-      bio: editedBio,
-      photoUrl: editedPhoto
-    });
+    onUpdate({ ...profile, name: editedName, bio: editedBio, photoUrl: editedPhoto });
     setIsEditing(false);
   };
 
@@ -1156,9 +1190,7 @@ const ProfileView = ({ profile, onLogout, onUpdate, stats }: any) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setEditedPhoto(reader.result as string);
-      };
+      reader.onloadend = () => setEditedPhoto(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
@@ -1166,164 +1198,38 @@ const ProfileView = ({ profile, onLogout, onUpdate, stats }: any) => {
   return (
     <div className="space-y-6 animate-in slide-up">
       <div className="bg-white rounded-[48px] shadow-sm border border-indigo-50 overflow-hidden">
-        {/* Cover Photo */}
         <div className="h-40 bg-gradient-to-r from-indigo-600 to-purple-600 relative">
-          <button 
-            onClick={() => setIsEditing(!isEditing)} 
-            className="absolute top-6 right-6 p-3 bg-white/20 backdrop-blur-md text-white rounded-2xl hover:bg-white/30 transition-all border border-white/20 shadow-lg z-10"
-            title={isEditing ? "বাতিল করুন" : "প্রোফাইল এডিট করুন"}
-          >
+          <button onClick={() => setIsEditing(!isEditing)} className="absolute top-6 right-6 p-3 bg-white/20 backdrop-blur-md text-white rounded-2xl hover:bg-white/30 transition-all border border-white/20 shadow-lg z-10" title={isEditing ? "বাতিল করুন" : "প্রোফাইল এডিট করুন"}>
             {isEditing ? <X size={20} /> : <Edit3 size={20} />}
           </button>
         </div>
-
-        {/* Profile Info Card */}
         <div className="px-10 pb-10 -mt-20 relative">
           <div className="flex flex-col items-center sm:items-start sm:flex-row gap-8">
             <div className="relative">
               <div className="w-40 h-40 rounded-[48px] border-8 border-white shadow-2xl bg-white flex items-center justify-center text-7xl overflow-hidden shadow-indigo-100/50">
-                {isEditing ? (
-                   editedPhoto ? <img src={editedPhoto} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-indigo-50 text-6xl">{AVATARS[profile?.points % AVATARS.length]}</div>
-                ) : (
-                   profile?.photoUrl ? <img src={profile.photoUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-indigo-50 text-6xl">{AVATARS[profile?.points % AVATARS.length]}</div>
-                )}
+                {isEditing ? (editedPhoto ? <img src={editedPhoto} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-indigo-50 text-6xl">{AVATARS[profile?.points % AVATARS.length]}</div>) : (profile?.photoUrl ? <img src={profile.photoUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-indigo-50 text-6xl">{AVATARS[profile?.points % AVATARS.length]}</div>)}
               </div>
-              {isEditing && (
-                <button 
-                  onClick={() => (document.getElementById('profile-upload-input') as any).click()}
-                  className="absolute bottom-2 right-2 p-3 bg-indigo-600 text-white rounded-2xl shadow-xl hover:bg-indigo-700 transition-all border-4 border-white active:scale-90"
-                >
-                  <Camera size={20} />
-                  <input id="profile-upload-input" type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} />
-                </button>
-              )}
+              {isEditing && <button onClick={() => (document.getElementById('profile-upload-input') as any).click()} className="absolute bottom-2 right-2 p-3 bg-indigo-600 text-white rounded-2xl shadow-xl hover:bg-indigo-700 transition-all border-4 border-white active:scale-90"><Camera size={20} /><input id="profile-upload-input" type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} /></button>}
             </div>
-
             <div className="flex-1 text-center sm:text-left pt-20 sm:pt-24 space-y-4">
               <div className="space-y-1">
-                {isEditing ? (
-                  <input 
-                    className="text-3xl font-black text-slate-800 bg-slate-50 border-2 border-indigo-100 rounded-xl px-4 py-2 w-full outline-none focus:border-indigo-600"
-                    value={editedName}
-                    onChange={e => setEditedName(e.target.value)}
-                    placeholder="আপনার নাম"
-                  />
-                ) : (
-                  <h2 className="text-4xl font-black text-slate-800 leading-tight">{profile?.name}</h2>
-                )}
-                <div className="flex items-center justify-center sm:justify-start gap-2">
-                  <span className="text-slate-400 font-bold">@{profile?.username}</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-slate-200"></span>
-                  <span className="text-indigo-600 font-black text-xs uppercase tracking-widest">{stats.rank}</span>
-                </div>
+                {isEditing ? <input className="text-3xl font-black text-slate-800 bg-slate-50 border-2 border-indigo-100 rounded-xl px-4 py-2 w-full outline-none focus:border-indigo-600" value={editedName} onChange={e => setEditedName(e.target.value)} placeholder="আপনার নাম" /> : <h2 className="text-4xl font-black text-slate-800 leading-tight">{profile?.name}</h2>}
+                <div className="flex items-center justify-center sm:justify-start gap-2"><span className="text-slate-400 font-bold">@{profile?.username}</span><span className="w-1.5 h-1.5 rounded-full bg-slate-200"></span><span className="text-indigo-600 font-black text-xs uppercase tracking-widest">{stats.rank}</span></div>
               </div>
-
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
-                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 text-yellow-600 rounded-full border border-yellow-100 text-xs font-black uppercase">
-                  <Trophy size={14}/> {stats.level}
-                </div>
-                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-full border border-indigo-100 text-xs font-black uppercase">
-                  <Calendar size={14}/> সদস্য যেহেতু: {profile.joinDate}
-                </div>
-              </div>
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3"><div className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 text-yellow-600 rounded-full border border-yellow-100 text-xs font-black uppercase"><Trophy size={14}/> {stats.level}</div><div className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-full border border-indigo-100 text-xs font-black uppercase"><Calendar size={14}/> সদস্য যেহেতু: {profile.joinDate}</div></div>
             </div>
           </div>
-
           <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-8">
-              {/* Bio Section */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
-                  <Info size={16}/> আমার সম্পর্কে
-                </h3>
-                {isEditing ? (
-                  <textarea 
-                    className="w-full bg-slate-50 border-2 border-indigo-100 rounded-3xl p-6 font-bold text-slate-600 outline-none focus:border-indigo-600 min-h-[120px]"
-                    value={editedBio}
-                    onChange={e => setEditedBio(e.target.value)}
-                    placeholder="আপনার সম্পর্কে কিছু লিখুন..."
-                  />
-                ) : (
-                  <p className="text-slate-600 font-medium leading-relaxed text-lg bg-slate-50 p-6 rounded-[32px] border border-slate-100">
-                    {profile?.bio || "এই ব্যবহারকারী এখনও কোনো বায়ো সেট করেননি।"}
-                  </p>
-                )}
-              </div>
-
-              {/* Badges Section */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
-                  <Award size={16}/> অর্জনসমূহ (Badges)
-                </h3>
-                <div className="flex flex-wrap gap-4">
-                  {earnedBadges.map((b, i) => (
-                    <div key={i} className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl border font-black text-sm shadow-sm hover:scale-105 transition-transform ${b.color} border-current/10`}>
-                      {b.icon} {b.name}
-                    </div>
-                  ))}
-                  {earnedBadges.length === 0 && <p className="text-slate-300 font-bold italic">এখনও কোনো ব্যাজ অর্জন হয়নি!</p>}
-                </div>
-              </div>
+              <div className="space-y-4"><h3 className="text-sm font-black uppercase text-slate-400 tracking-widest flex items-center gap-2"><Info size={16}/> আমার সম্পর্কে</h3>{isEditing ? <textarea className="w-full bg-slate-50 border-2 border-indigo-100 rounded-3xl p-6 font-bold text-slate-600 outline-none focus:border-indigo-600 min-h-[120px]" value={editedBio} onChange={e => setEditedBio(e.target.value)} placeholder="আপনার সম্পর্কে কিছু লিখুন..." /> : <p className="text-slate-600 font-medium leading-relaxed text-lg bg-slate-50 p-6 rounded-[32px] border border-slate-100">{profile?.bio || "এই ব্যবহারকারী এখনও কোনো বায়ো সেট করেননি।"}</p>}</div>
+              <div className="space-y-4"><h3 className="text-sm font-black uppercase text-slate-400 tracking-widest flex items-center gap-2"><Award size={16}/> অর্জনসমূহ (Badges)</h3><div className="flex flex-wrap gap-4">{earnedBadges.map((b, i) => <div key={i} className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl border font-black text-sm shadow-sm hover:scale-105 transition-transform ${b.color} border-current/10`}>{b.icon} {b.name}</div>)}{earnedBadges.length === 0 && <p className="text-slate-300 font-bold italic">এখনও কোনো ব্যাজ অর্জন হয়নি!</p>}</div></div>
             </div>
-
-            {/* Stats Sidebar */}
             <div className="space-y-6">
               <div className="bg-slate-50 rounded-[40px] p-8 border border-slate-100 space-y-8">
-                <div className="space-y-6">
-                  <h3 className="text-sm font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
-                    <Activity size={16}/> পারফরম্যান্স
-                  </h3>
-                  
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-100"><Zap size={20}/></div>
-                        <div>
-                          <p className="text-2xl font-black text-slate-800">{profile.points}</p>
-                          <p className="text-[10px] font-black text-slate-400 uppercase">মোট পয়েন্ট</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="p-3 bg-rose-500 text-white rounded-2xl shadow-lg shadow-rose-100"><TrendingUp size={20}/></div>
-                        <div>
-                          <p className="text-2xl font-black text-slate-800">{profile.streak}</p>
-                          <p className="text-[10px] font-black text-slate-400 uppercase">দিনের স্ট্রাইক</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4 pt-6 border-t border-slate-200">
-                  <div className="flex justify-between items-end">
-                    <p className="text-xs font-black text-slate-400 uppercase">নেক্সট লেভেল প্রগ্রেস</p>
-                    <p className="text-xs font-black text-indigo-600">{Math.round(stats.progress)}%</p>
-                  </div>
-                  <div className="h-4 bg-white rounded-full overflow-hidden border border-slate-100 shadow-inner p-1">
-                    <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-1000" style={{ width: `${stats.progress}%` }}></div>
-                  </div>
-                  <p className="text-[10px] text-center text-slate-400 font-black">আারও {stats.nextThreshold - profile.points} পয়েন্ট প্রয়োজন</p>
-                </div>
+                <div className="space-y-6"><h3 className="text-sm font-black uppercase text-slate-400 tracking-widest flex items-center gap-2"><Activity size={16}/> পারফরম্যান্স</h3><div className="space-y-6"><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-100"><Zap size={20}/></div><div><p className="text-2xl font-black text-slate-800">{profile.points}</p><p className="text-[10px] font-black text-slate-400 uppercase">মোট পয়েন্ট</p></div></div></div><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className="p-3 bg-rose-500 text-white rounded-2xl shadow-lg shadow-rose-100"><TrendingUp size={20}/></div><div><p className="text-2xl font-black text-slate-800">{profile.streak}</p><p className="text-[10px] font-black text-slate-400 uppercase">দিনের স্ট্রাইক</p></div></div></div></div></div>
+                <div className="space-y-4 pt-6 border-t border-slate-200"><div className="flex justify-between items-end"><p className="text-xs font-black text-slate-400 uppercase">নেক্সট লেভেল প্রগ্রেস</p><p className="text-xs font-black text-indigo-600">{Math.round(stats.progress)}%</p></div><div className="h-4 bg-white rounded-full overflow-hidden border border-slate-100 shadow-inner p-1"><div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-1000" style={{ width: `${stats.progress}%` }}></div></div><p className="text-[10px] text-center text-slate-400 font-black">আারও {stats.nextThreshold - profile.points} পয়েন্ট প্রয়োজন</p></div>
               </div>
-
-              {isEditing ? (
-                <button 
-                  onClick={handleSave} 
-                  className="w-full bg-indigo-600 text-white py-5 rounded-[32px] font-black text-xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-[0.98] flex items-center justify-center gap-3"
-                >
-                  <Save size={24}/> তথ্য সেভ করো
-                </button>
-              ) : (
-                <button 
-                  onClick={onLogout} 
-                  className="w-full bg-rose-50 text-rose-600 py-5 rounded-[32px] font-black flex items-center justify-center gap-3 border border-rose-100 hover:bg-rose-100 transition-all active:scale-[0.98]"
-                >
-                  <LogOut size={24}/> লগ আউট
-                </button>
-              )}
+              {isEditing ? <button onClick={handleSave} className="w-full bg-indigo-600 text-white py-5 rounded-[32px] font-black text-xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-[0.98] flex items-center justify-center gap-3"><Save size={24}/> তথ্য সেভ করো</button> : <button onClick={onLogout} className="w-full bg-rose-50 text-rose-600 py-5 rounded-[32px] font-black flex items-center justify-center gap-3 border border-rose-100 hover:bg-rose-100 transition-all active:scale-[0.98]"><LogOut size={24}/> লগ আউট</button>}
             </div>
           </div>
         </div>
