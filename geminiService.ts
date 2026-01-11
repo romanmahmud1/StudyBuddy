@@ -1,6 +1,6 @@
 
 // Gemini service for providing educational assistance using Google's GenAI API
-import { GoogleGenAI, Modality, Type } from "@google/genai";
+import { GoogleGenAI, Modality } from "@google/genai";
 
 // Explains a study topic simply in Bengali
 export const getStudyExplanation = async (topic: string, base64Image?: string) => {
@@ -16,7 +16,7 @@ export const getStudyExplanation = async (topic: string, base64Image?: string) =
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: [{ parts }],
+    contents: { parts },
     config: {
       systemInstruction: "You are a friendly teacher. Explain complex concepts in very simple Bengali with stories and examples. MANDATORY: Start every response with the Bengali greeting 'আসসালামু আলাইকুম'. NEVER use 'Namaskar' or any other greeting. Be warm and encouraging."
     }
@@ -47,7 +47,7 @@ export const solveMath = async (mathProblem: string, base64Image?: string) => {
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview', // Math is a complex reasoning task
-    contents: [{ parts }],
+    contents: { parts },
     config: {
       systemInstruction: "You are 'Math Wizard Master'. Solve problems accurately. STRICT RULES: 1. No LaTeX/delimiters. 2. Use symbols (+, -, ×, ÷) for operations. 3. Explain in simple Bengali. 4. MANDATORY: Start with 'আসসালামু আলাইকুম'."
     }
@@ -64,7 +64,7 @@ export const getTranslationAndGuide = async (text: string, direction: 'bn-en' | 
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: [{ parts: [{ text: promptText }] }],
+    contents: { parts: [{ text: promptText }] },
     config: {
       systemInstruction: `You are a language teacher. 
       If translating BN to EN: Return the English sentence and the pronunciation in Bengali letters.
@@ -86,7 +86,7 @@ export const getSpellingCorrection = async (text: string, lang: 'bn' | 'en') => 
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: [{ parts: [{ text: promptText }] }],
+    contents: { parts: [{ text: promptText }] },
     config: {
       systemInstruction: "You are a language expert and spelling teacher. Help students correct their spelling and learn the rules. Always explain in simple Bengali. MANDATORY: Start every response with the Bengali greeting 'আসসালামু আলাইকুম'."
     }
@@ -99,7 +99,7 @@ export const getSpeech = async (text: string) => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash-preview-tts",
-    contents: [{ parts: [{ text: `Say clearly: ${text}` }] }],
+    contents: { parts: [{ text: `Say clearly: ${text}` }] },
     config: {
       responseModalities: [Modality.AUDIO],
       speechConfig: {
@@ -153,7 +153,7 @@ export const getQA = async (question: string, base64Image?: string) => {
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: [{ parts }],
+    contents: { parts },
     config: {
       systemInstruction: "Answer educational or general knowledge questions simply in Bengali. MANDATORY: Start every response with the Bengali greeting 'আসসালামু আলাইকুম'. NEVER use 'Namaskar' or any other greeting."
     }
@@ -166,7 +166,7 @@ export const checkDailyGoal = async (input: string) => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: [{ parts: [{ text: `Check if this sentence is grammatically correct English: "${input}". If it is correct enough for a beginner, say "SUCCESS". Otherwise, explain the mistake briefly in Bengali.` }] }],
+    contents: { parts: [{ text: `Check if this sentence is grammatically correct English: "${input}". If it is correct enough for a beginner, say "SUCCESS". Otherwise, explain the mistake briefly in Bengali.` }] },
     config: {
       systemInstruction: "You are an English teacher. Evaluate the user's sentence. If it's acceptable for a beginner, output 'SUCCESS'. If not, provide a short correction in Bengali."
     }
@@ -183,7 +183,7 @@ export const getScriptContent = async (topic: string, lang: 'bn' | 'en') => {
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview', // Script writing is a complex creative task
-    contents: [{ parts: [{ text: promptText }] }],
+    contents: { parts: [{ text: promptText }] },
     config: {
       systemInstruction: "You are a creative scriptwriter and content creator. You help students write speeches, video scripts, and presentations. Always provide high-quality, structured content. MANDATORY: Start every response with the Bengali greeting 'আসসালামু আলাইকুম'."
     }
