@@ -557,13 +557,24 @@ const AuthView = ({ onLogin, users, setAllUsers }: any) => {
 const StudyView = ({ setLoading }: any) => {
   const [input, setInput] = useState('');
   const [res, setRes] = useState<any>(null);
-  const handle = async () => { if(!input.trim()) return; setLoading(true); try { setRes(await getStudyExplanation(input)); } finally { setLoading(false); } };
+  const handle = async () => { 
+    if(!input.trim()) return; 
+    setLoading(true); 
+    try { 
+      const data = await getStudyExplanation(input);
+      setRes(data); 
+    } catch (e) {
+      alert("দুঃখিত, কোনো একটি সমস্যা হয়েছে। আবার চেষ্টা করুন।");
+    } finally { 
+      setLoading(false); 
+    } 
+  };
   return (
     <div className="bg-white p-8 rounded-[40px] shadow-sm border space-y-6 animate-in slide-up">
       <div className="flex items-center justify-between"><h2 className="text-2xl font-black">সহজ পড়া মোড</h2><STTButton onResult={setInput} /></div>
-      <textarea className="w-full bg-slate-50 border-2 rounded-3xl p-6 min-h-[200px] font-bold outline-none border-slate-100" placeholder="টপিক..." value={input} onChange={e => setInput(e.target.value)} />
-      <button onClick={handle} className="w-full bg-blue-600 text-white py-5 rounded-3xl font-black text-xl shadow-xl">শুরু করো</button>
-      {res && <div className="p-8 bg-blue-50/50 rounded-[32px] border-2 border-blue-100 relative whitespace-pre-wrap"><div className="absolute top-4 right-4"><CopyButton text={res} /></div>{res}</div>}
+      <textarea className="w-full bg-slate-50 border-2 rounded-3xl p-6 min-h-[200px] font-bold outline-none border-slate-100 focus:border-blue-600 transition-all" placeholder="টপিক..." value={input} onChange={e => setInput(e.target.value)} />
+      <button onClick={handle} className="w-full bg-blue-600 text-white py-5 rounded-3xl font-black text-xl shadow-xl hover:bg-blue-700 active:scale-95 transition-all">শুরু করো</button>
+      {res && <div className="p-8 bg-blue-50/50 rounded-[32px] border-2 border-blue-100 relative whitespace-pre-wrap animate-in slide-up"><div className="absolute top-4 right-4"><CopyButton text={res} /></div>{res}</div>}
     </div>
   );
 };
@@ -572,7 +583,18 @@ const MathView = ({ setLoading }: any) => {
   const [input, setInput] = useState('');
   const [img, setImg] = useState<string | null>(null);
   const [res, setRes] = useState<any>(null);
-  const handle = async () => { if(!input.trim() && !img) return; setLoading(true); try { setRes(await solveMath(input, img?.split(',')[1])); } finally { setLoading(false); } };
+  const handle = async () => { 
+    if(!input.trim() && !img) return; 
+    setLoading(true); 
+    try { 
+      const data = await solveMath(input, img?.split(',')[1]);
+      setRes(data); 
+    } catch (e) {
+      alert("দুঃখিত, অংকটি সমাধান করা সম্ভব হয়নি। আবার চেষ্টা করুন।");
+    } finally { 
+      setLoading(false); 
+    } 
+  };
   return (
     <div className="bg-white p-8 rounded-[40px] shadow-sm border space-y-6 animate-in slide-up overflow-hidden">
       <div className="flex items-center justify-between">
@@ -587,7 +609,7 @@ const MathView = ({ setLoading }: any) => {
         </div>
       </div>
       
-      {img && <div className="relative rounded-[32px] overflow-hidden border-4 border-slate-100 shadow-lg"><img src={img} className="w-full max-h-64 object-contain bg-slate-50" /><button onClick={() => setImg(null)} className="absolute top-4 right-4 bg-white/80 backdrop-blur-md p-2 rounded-full text-rose-500 hover:bg-white shadow-sm transition-all"><X size={20}/></button></div>}
+      {img && <div className="relative rounded-[32px] overflow-hidden border-4 border-slate-100 shadow-lg animate-in zoom-in"><img src={img} className="w-full max-h-64 object-contain bg-slate-50" /><button onClick={() => setImg(null)} className="absolute top-4 right-4 bg-white/80 backdrop-blur-md p-2 rounded-full text-rose-500 hover:bg-white shadow-sm transition-all"><X size={20}/></button></div>}
       
       <div className="space-y-2">
         <label className="text-xs font-black text-slate-400 uppercase ml-2 tracking-wider">অংকটি লিখুন অথবা ছবি দিন</label>
@@ -622,13 +644,28 @@ const SpeakingView = ({ setLoading }: any) => {
   const [input, setInput] = useState('');
   const [res, setRes] = useState<any>(null);
   const [dir, setDir] = useState<'bn-en' | 'en-bn'>('bn-en');
-  const handle = async () => { if(!input.trim()) return; setLoading(true); try { const raw = await getTranslationAndGuide(input, dir); if(raw){ const t = raw.match(/TRANSLATION:\s*(.*)/); const p = raw.match(/PRONUNCIATION:\s*(.*)/); setRes({ t: t?.[1], p: p?.[1] }); } } finally { setLoading(false); } };
+  const handle = async () => { 
+    if(!input.trim()) return; 
+    setLoading(true); 
+    try { 
+      const raw = await getTranslationAndGuide(input, dir); 
+      if(raw){ 
+        const t = raw.match(/TRANSLATION:\s*(.*)/i); 
+        const p = raw.match(/PRONUNCIATION:\s*(.*)/i); 
+        setRes({ t: t?.[1] || raw, p: p?.[1] || "" }); 
+      } 
+    } catch (e) {
+      alert("অনুবাদ করা সম্ভব হয়নি।");
+    } finally { 
+      setLoading(false); 
+    } 
+  };
   return (
     <div className="bg-white p-8 rounded-[40px] shadow-sm border space-y-6 animate-in slide-up">
       <div className="flex items-center justify-between"><h2 className="text-2xl font-black">অনুবাদ</h2><button onClick={() => setDir(dir === 'bn-en' ? 'en-bn' : 'bn-en')} className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-black text-xs">{dir === 'bn-en' ? 'BN-EN' : 'EN-BN'}</button></div>
-      <textarea className="w-full bg-slate-50 border-2 rounded-3xl p-6 font-bold outline-none border-slate-100" placeholder="টেক্সট..." value={input} onChange={e => setInput(e.target.value)} />
-      <button onClick={handle} className="w-full bg-green-600 text-white py-5 rounded-3xl font-black text-xl">অনুবাদ করো</button>
-      {res && <div className="p-8 bg-green-50/50 rounded-[32px] border-2 border-green-100 text-center space-y-2 font-bold relative"><div className="absolute top-4 right-4"><CopyButton text={res.t} /></div><p className="text-xl">{res.t}</p><p className="text-green-700">{res.p}</p></div>}
+      <textarea className="w-full bg-slate-50 border-2 rounded-3xl p-6 font-bold outline-none border-slate-100 focus:border-green-600 transition-all" placeholder="টেক্সট..." value={input} onChange={e => setInput(e.target.value)} />
+      <button onClick={handle} className="w-full bg-green-600 text-white py-5 rounded-3xl font-black text-xl hover:bg-green-700 transition-all">অনুবাদ করো</button>
+      {res && <div className="p-8 bg-green-50/50 rounded-[32px] border-2 border-green-100 text-center space-y-2 font-bold relative animate-in slide-up"><div className="absolute top-4 right-4"><CopyButton text={res.t} /></div><p className="text-xl">{res.t}</p><p className="text-green-700">{res.p}</p></div>}
     </div>
   );
 };
@@ -636,13 +673,24 @@ const SpeakingView = ({ setLoading }: any) => {
 const QAView = ({ setLoading }: any) => {
   const [input, setInput] = useState('');
   const [res, setRes] = useState<any>(null);
-  const handle = async () => { if(!input.trim()) return; setLoading(true); try { setRes(await getQA(input)); } finally { setLoading(false); } };
+  const handle = async () => { 
+    if(!input.trim()) return; 
+    setLoading(true); 
+    try { 
+      const data = await getQA(input);
+      setRes(data); 
+    } catch (e) {
+      alert("উত্তর খোঁজা সম্ভব হয়নি।");
+    } finally { 
+      setLoading(false); 
+    } 
+  };
   return (
     <div className="bg-white p-8 rounded-[40px] shadow-sm border space-y-6 animate-in slide-up">
       <div className="flex items-center justify-between"><h2 className="text-2xl font-black">প্রশ্ন ও উত্তর</h2><STTButton onResult={setInput} /></div>
-      <textarea className="w-full bg-slate-50 border-2 rounded-3xl p-6 min-h-[150px] font-bold outline-none border-slate-100" placeholder="প্রশ্ন..." value={input} onChange={e => setInput(e.target.value)} />
-      <button onClick={handle} className="w-full bg-orange-600 text-white py-5 rounded-3xl font-black text-xl">উত্তর খোঁজো</button>
-      {res && <div className="p-8 bg-orange-50/50 rounded-[32px] border-2 border-orange-100 relative whitespace-pre-wrap"><div className="absolute top-4 right-4"><CopyButton text={res} /></div>{res}</div>}
+      <textarea className="w-full bg-slate-50 border-2 rounded-3xl p-6 min-h-[150px] font-bold outline-none border-slate-100 focus:border-orange-600 transition-all" placeholder="প্রশ্ন..." value={input} onChange={e => setInput(e.target.value)} />
+      <button onClick={handle} className="w-full bg-orange-600 text-white py-5 rounded-3xl font-black text-xl hover:bg-orange-700 transition-all">উত্তর খোঁজো</button>
+      {res && <div className="p-8 bg-orange-50/50 rounded-[32px] border-2 border-orange-100 relative whitespace-pre-wrap animate-in slide-up"><div className="absolute top-4 right-4"><CopyButton text={res} /></div>{res}</div>}
     </div>
   );
 };
@@ -652,17 +700,28 @@ const ScriptWriterView = ({ setLoading }: any) => {
   const [lang, setLang] = useState<'bn' | 'en'>('bn');
   const [res, setRes] = useState<any>(null);
   const [cp, setCp] = useState('পুরো স্ক্রিপ্ট কপি করো');
-  const handle = async () => { if(!input.trim()) return; setLoading(true); try { setRes(await getScriptContent(input, lang)); } finally { setLoading(false); } };
+  const handle = async () => { 
+    if(!input.trim()) return; 
+    setLoading(true); 
+    try { 
+      const data = await getScriptContent(input, lang);
+      setRes(data); 
+    } catch (e) {
+      alert("স্ক্রিপ্ট তৈরি করা সম্ভব হয়নি।");
+    } finally { 
+      setLoading(false); 
+    } 
+  };
   const copy = () => { if(res){ navigator.clipboard.writeText(res); setCp('কপি হয়েছে!'); setTimeout(() => setCp('পুরো স্ক্রিপ্ট কপি করো'), 2000); } };
   return (
     <div className="bg-white p-8 rounded-[40px] shadow-sm border space-y-6 animate-in slide-up">
       <div className="flex items-center justify-between"><h2 className="text-2xl font-black">স্ক্রিপ্ট লিখে নাও</h2><div className="flex gap-2"><button onClick={() => setLang('bn')} className={`px-4 py-2 rounded-xl text-xs font-black ${lang === 'bn' ? 'bg-rose-600 text-white' : 'bg-slate-50'}`}>বাংলা</button><button onClick={() => setLang('en')} className={`px-4 py-2 rounded-xl text-xs font-black ${lang === 'en' ? 'bg-rose-600 text-white' : 'bg-slate-50'}`}>ENG</button></div></div>
-      <textarea className="w-full bg-slate-50 border-2 rounded-3xl p-6 min-h-[180px] font-bold outline-none border-slate-100" placeholder="টপিক..." value={input} onChange={e => setInput(e.target.value)} />
-      <button onClick={handle} className="w-full bg-rose-600 text-white py-5 rounded-3xl font-black text-xl">স্ক্রিপ্ট তৈরি করো</button>
+      <textarea className="w-full bg-slate-50 border-2 rounded-3xl p-6 min-h-[180px] font-bold outline-none border-slate-100 focus:border-rose-600 transition-all" placeholder="টপিক..." value={input} onChange={e => setInput(e.target.value)} />
+      <button onClick={handle} className="w-full bg-rose-600 text-white py-5 rounded-3xl font-black text-xl hover:bg-rose-700 transition-all">স্ক্রিপ্ট তৈরি করো</button>
       {res && (
-        <div className="p-8 bg-rose-50/50 rounded-[32px] border-2 border-rose-100 space-y-4 animate-in">
+        <div className="p-8 bg-rose-50/50 rounded-[32px] border-2 border-rose-100 space-y-4 animate-in slide-up">
           <div className="whitespace-pre-wrap font-medium">{res}</div>
-          <button onClick={copy} className="w-full py-4 bg-white border-2 border-rose-200 rounded-2xl text-rose-600 font-black flex items-center justify-center gap-2"><Copy size={18} /> {cp}</button>
+          <button onClick={copy} className="w-full py-4 bg-white border-2 border-rose-200 rounded-2xl text-rose-600 font-black flex items-center justify-center gap-2 hover:bg-rose-50 transition-all"><Copy size={18} /> {cp}</button>
         </div>
       )}
     </div>
@@ -700,6 +759,8 @@ const DailyRewardView = ({ currentUser, onUpdate, setLoading }: any) => {
       } else {
         setFeedback(res);
       }
+    } catch (e) {
+      alert("চেক করা সম্ভব হয়নি।");
     } finally {
       setLoading(false);
     }
@@ -758,7 +819,7 @@ const DailyRewardView = ({ currentUser, onUpdate, setLoading }: any) => {
       </button>
 
       {feedback && (
-        <div className={`p-6 rounded-[32px] border-2 font-bold ${feedback.includes('সঠিক') || feedback.includes('অসাধারন') ? 'bg-green-50 border-green-100 text-green-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
+        <div className={`p-6 rounded-[32px] border-2 font-bold animate-in slide-up ${feedback.includes('সঠিক') || feedback.includes('অসাধারন') ? 'bg-green-50 border-green-100 text-green-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
           <div className="flex items-start gap-3">
              <Info size={20} className="shrink-0 mt-1" />
              <p>{feedback}</p>
@@ -775,20 +836,27 @@ const FriendChatView = ({ setLoading }: any) => {
   const handle = async () => {
     if(!input.trim()) return;
     const nm = [...msg, { role: 'user', parts: [{ text: input }] }]; setMsg(nm); setInput(''); setLoading(true);
-    try { const r = await chatWithAiFriend(msg, input); setMsg([...nm, { role: 'model', parts: [{ text: r }] }]); } finally { setLoading(false); }
+    try { 
+      const r = await chatWithAiFriend(msg, input); 
+      setMsg([...nm, { role: 'model', parts: [{ text: r }] }]); 
+    } catch (e) {
+      alert("চ্যাট করা সম্ভব হচ্ছে না।");
+    } finally { 
+      setLoading(false); 
+    }
   };
   return (
     <div className="bg-white p-6 rounded-[40px] shadow-sm border flex flex-col h-[600px] animate-in slide-up">
       <h2 className="text-2xl font-black mb-6">এআই বন্ধু চ্যাট</h2>
       <div className="flex-1 overflow-y-auto space-y-4 p-2 custom-scrollbar">
         {msg.map((m, i) => (
-          <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+          <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-up`}>
             <div className={`max-w-[80%] p-4 rounded-3xl font-bold shadow-sm ${m.role === 'user' ? 'bg-indigo-600 text-white' : 'bg-slate-50 border border-slate-100'}`}>{m.parts[0].text}</div>
           </div>
         ))}
         {msg.length === 0 && <div className="text-center py-12 text-slate-400 italic">বন্ধুত্বপূর্ণ ইংরেজি শিখতে চ্যাট শুরু করো!</div>}
       </div>
-      <div className="flex gap-2 mt-4"><input className="flex-1 bg-slate-50 border-2 rounded-2xl px-6 py-4 font-bold outline-none border-slate-100 focus:border-indigo-600" placeholder="Hi..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handle()} /><button onClick={handle} className="p-4 bg-pink-600 text-white rounded-2xl shadow-lg"><Send size={20} /></button></div>
+      <div className="flex gap-2 mt-4"><input className="flex-1 bg-slate-50 border-2 rounded-2xl px-6 py-4 font-bold outline-none border-slate-100 focus:border-indigo-600" placeholder="Hi..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handle()} /><button onClick={handle} className="p-4 bg-pink-600 text-white rounded-2xl shadow-lg hover:bg-pink-700 transition-all"><Send size={20} /></button></div>
     </div>
   );
 };
@@ -801,13 +869,13 @@ const HelpLineView = ({ helpMessages, setHelpMessages, userId, userName, isAdmin
       <h2 className="text-2xl font-black mb-6">হেল্প লাইন</h2>
       <div className="flex-1 overflow-y-auto space-y-4 p-2 custom-scrollbar">
         {helpMessages.filter((m: any) => isAdmin || m.userId === userId).map((m: any) => (
-          <div key={m.id} className={`flex flex-col ${m.isAdmin === isAdmin ? 'items-end' : 'items-start'}`}>
+          <div key={m.id} className={`flex flex-col ${m.isAdmin === isAdmin ? 'items-end' : 'items-start'} animate-in slide-up`}>
             <span className="text-[10px] font-black text-slate-400 mb-1 px-2">{m.userName} {m.isAdmin && "(Admin)"}</span>
             <div className={`p-4 rounded-3xl font-bold ${m.isAdmin === isAdmin ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-50 text-slate-700 border border-slate-100 rounded-tl-none'}`}>{m.text}</div>
           </div>
         ))}
       </div>
-      <div className="flex gap-2 mt-4"><input className="flex-1 bg-slate-50 border-2 rounded-2xl px-6 py-4 font-bold outline-none border-slate-100 focus:border-indigo-600" placeholder="সমস্যা লিখুন..." value={input} onChange={e => setInput(e.target.value)} /><button onClick={handle} className="p-4 bg-indigo-600 text-white rounded-2xl shadow-lg"><Send size={20} /></button></div>
+      <div className="flex gap-2 mt-4"><input className="flex-1 bg-slate-50 border-2 rounded-2xl px-6 py-4 font-bold outline-none border-slate-100 focus:border-indigo-600" placeholder="সমস্যা লিখুন..." value={input} onChange={e => setInput(e.target.value)} /><button onClick={handle} className="p-4 bg-indigo-600 text-white rounded-2xl shadow-lg hover:bg-indigo-700 transition-all"><Send size={20} /></button></div>
     </div>
   );
 };
@@ -816,13 +884,24 @@ const SpellingView = ({ setLoading }: any) => {
   const [input, setInput] = useState('');
   const [lang, setLang] = useState<'bn' | 'en'>('bn');
   const [res, setRes] = useState<any>(null);
-  const handle = async () => { if(!input.trim()) return; setLoading(true); try { setRes(await getSpellingCorrection(input, lang)); } finally { setLoading(false); } };
+  const handle = async () => { 
+    if(!input.trim()) return; 
+    setLoading(true); 
+    try { 
+      const data = await getSpellingCorrection(input, lang);
+      setRes(data); 
+    } catch (e) {
+      alert("চেক করা সম্ভব হয়নি।");
+    } finally { 
+      setLoading(false); 
+    } 
+  };
   return (
     <div className="bg-white p-8 rounded-[40px] shadow-sm border space-y-6 animate-in slide-up">
       <div className="flex items-center justify-between"><h2 className="text-2xl font-black">বানান শিখুন</h2><div className="flex gap-2"><button onClick={() => setLang('bn')} className={`px-4 py-2 rounded-xl text-xs font-black ${lang === 'bn' ? 'bg-indigo-600 text-white' : 'bg-slate-50'}`}>বাংলা</button><button onClick={() => setLang('en')} className={`px-4 py-2 rounded-xl text-xs font-black ${lang === 'en' ? 'bg-indigo-600 text-white' : 'bg-slate-50'}`}>ENG</button></div></div>
-      <textarea className="w-full bg-slate-50 border-2 rounded-3xl p-6 min-h-[150px] font-bold outline-none border-slate-100 focus:border-indigo-600" placeholder="টেক্সট..." value={input} onChange={e => setInput(e.target.value)} />
-      <button onClick={handle} className="w-full bg-cyan-600 text-white py-5 rounded-3xl font-black text-xl shadow-xl">চেক করো</button>
-      {res && <div className="p-8 bg-cyan-50/50 rounded-[32px] border-2 border-cyan-100 relative whitespace-pre-wrap"><div className="absolute top-4 right-4"><CopyButton text={res} /></div>{res}</div>}
+      <textarea className="w-full bg-slate-50 border-2 rounded-3xl p-6 min-h-[150px] font-bold outline-none border-slate-100 focus:border-indigo-600 transition-all" placeholder="টেক্সট..." value={input} onChange={e => setInput(e.target.value)} />
+      <button onClick={handle} className="w-full bg-cyan-600 text-white py-5 rounded-3xl font-black text-xl shadow-xl hover:bg-cyan-700 transition-all">চেক করো</button>
+      {res && <div className="p-8 bg-cyan-50/50 rounded-[32px] border-2 border-cyan-100 relative whitespace-pre-wrap animate-in slide-up"><div className="absolute top-4 right-4"><CopyButton text={res} /></div>{res}</div>}
     </div>
   );
 };
@@ -898,7 +977,7 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
 
   const handleUpdateProfile = () => {
     setAdminProfile({ name: profNameInput, email: profEmailInput, photoUrl: profPhotoInput || undefined });
-    alert("অ্যাডমিন প্রোফাইল আপডেট হয়েছে!");
+    alert("অ্যাডমিন প্রোফাইল সফলভাবে আপডেট হয়েছে!");
   };
 
   const handleAddLink = () => {
@@ -1184,6 +1263,7 @@ const ProfileView = ({ profile, onLogout, onUpdate, stats }: any) => {
   const handleSave = () => {
     onUpdate({ ...profile, name: editedName, bio: editedBio, photoUrl: editedPhoto });
     setIsEditing(false);
+    alert("প্রোফাইল তথ্য সেভ হয়েছে!");
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -1,12 +1,12 @@
 
 // Gemini service for providing educational assistance using Google's GenAI API
-import { GoogleGenAI, Modality } from "@google/genai";
-
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+import { GoogleGenAI, Modality, Type } from "@google/genai";
 
 // Explains a study topic simply in Bengali
 export const getStudyExplanation = async (topic: string, base64Image?: string) => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const parts: any[] = [];
+  
   if (base64Image) {
     parts.push({ inlineData: { mimeType: 'image/jpeg', data: base64Image } });
     parts.push({ text: `এই ছবির টপিকটি সহজে বাংলায় ব্যাখ্যা করো। একটি উদাহরণ এবং ছোট গল্প ব্যবহার করো যাতে বুঝতে সুবিধা হয়। বুঝাও যে আমি একদম বেসিক লেভেলে বুঝতে চাই। শুরুতে অবশ্যই "আসসালামু আলাইকুম" বলবে।` });
@@ -16,7 +16,7 @@ export const getStudyExplanation = async (topic: string, base64Image?: string) =
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: { parts },
+    contents: [{ parts }],
     config: {
       systemInstruction: "You are a friendly teacher. Explain complex concepts in very simple Bengali with stories and examples. MANDATORY: Start every response with the Bengali greeting 'আসসালামু আলাইকুম'. NEVER use 'Namaskar' or any other greeting. Be warm and encouraging."
     }
@@ -26,6 +26,7 @@ export const getStudyExplanation = async (topic: string, base64Image?: string) =
 
 // Solves a math problem with step-by-step Bengali explanation
 export const solveMath = async (mathProblem: string, base64Image?: string) => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const parts: any[] = [];
   
   if (base64Image) {
@@ -36,7 +37,7 @@ export const solveMath = async (mathProblem: string, base64Image?: string) => {
       } 
     });
     parts.push({ 
-      text: `Solve the math problem in this image. Explain steps clearly in Bengali. Use symbols (+, -, ×, ÷) only. Start with 'আসসালামু আলাইকুম'.` 
+      text: `Solve the math problem in this image accurately. Explain steps clearly in Bengali. Use symbols (+, -, ×, ÷) only. Start with 'আসসালামু আলাইকুম'.` 
     });
   } else {
     parts.push({ 
@@ -45,8 +46,8 @@ export const solveMath = async (mathProblem: string, base64Image?: string) => {
   }
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview', // Switched to Flash for high availability and reliability on Vercel
-    contents: { parts },
+    model: 'gemini-3-pro-preview', // Math is a complex reasoning task
+    contents: [{ parts }],
     config: {
       systemInstruction: "You are 'Math Wizard Master'. Solve problems accurately. STRICT RULES: 1. No LaTeX/delimiters. 2. Use symbols (+, -, ×, ÷) for operations. 3. Explain in simple Bengali. 4. MANDATORY: Start with 'আসসালামু আলাইকুম'."
     }
@@ -56,13 +57,14 @@ export const solveMath = async (mathProblem: string, base64Image?: string) => {
 
 // Provides translation and pronunciation guide based on direction
 export const getTranslationAndGuide = async (text: string, direction: 'bn-en' | 'en-bn') => {
-  const prompt = direction === 'bn-en' 
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const promptText = direction === 'bn-en' 
     ? `বাংলা: "${text}"। এর সঠিক ইংরেজি অনুবাদ এবং বাংলা অক্ষরে উচ্চারণ নির্দেশিকা দাও।`
     : `English: "${text}". Provide its correct Bengali translation and pronunciation guide in Bengali letters.`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: prompt,
+    contents: [{ parts: [{ text: promptText }] }],
     config: {
       systemInstruction: `You are a language teacher. 
       If translating BN to EN: Return the English sentence and the pronunciation in Bengali letters.
@@ -77,13 +79,14 @@ export const getTranslationAndGuide = async (text: string, direction: 'bn-en' | 
 
 // Spelling Correction and Explanation
 export const getSpellingCorrection = async (text: string, lang: 'bn' | 'en') => {
-  const prompt = lang === 'bn'
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const promptText = lang === 'bn'
     ? `নিচের বাংলা লেখাটির বানান চেক করো: "${text}"। যদি ভুল থাকে তবে সঠিক বানানটি দাও এবং কেন ভুল হয়েছে বা সঠিক নিয়মটি কী তা সহজ বাংলায় বুঝিয়ে বলো। যদি সব সঠিক থাকে তবে "অভিনন্দন, সব সঠিক আছে!" বলো।`
     : `Check the spelling and grammar of this English text: "${text}". If there are errors, provide the corrected version and explain the mistakes in simple Bengali. If everything is correct, say "অভিনন্দন, সব সঠিক আছে!"`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: prompt,
+    contents: [{ parts: [{ text: promptText }] }],
     config: {
       systemInstruction: "You are a language expert and spelling teacher. Help students correct their spelling and learn the rules. Always explain in simple Bengali. MANDATORY: Start every response with the Bengali greeting 'আসসালামু আলাইকুম'."
     }
@@ -93,6 +96,7 @@ export const getSpellingCorrection = async (text: string, lang: 'bn' | 'en') => 
 
 // Generates speech for a given English text
 export const getSpeech = async (text: string) => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash-preview-tts",
     contents: [{ parts: [{ text: `Say clearly: ${text}` }] }],
@@ -110,6 +114,7 @@ export const getSpeech = async (text: string) => {
 
 // Interactive chat with an AI friend for English practice
 export const chatWithAiFriend = async (history: any[], message: string) => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const chat = ai.chats.create({
     model: 'gemini-3-flash-preview',
     config: {
@@ -137,6 +142,7 @@ export const chatWithAiFriend = async (history: any[], message: string) => {
 
 // General Q&A for educational topics
 export const getQA = async (question: string, base64Image?: string) => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const parts: any[] = [];
   if (base64Image) {
     parts.push({ inlineData: { mimeType: 'image/jpeg', data: base64Image } });
@@ -147,7 +153,7 @@ export const getQA = async (question: string, base64Image?: string) => {
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: { parts },
+    contents: [{ parts }],
     config: {
       systemInstruction: "Answer educational or general knowledge questions simply in Bengali. MANDATORY: Start every response with the Bengali greeting 'আসসালামু আলাইকুম'. NEVER use 'Namaskar' or any other greeting."
     }
@@ -157,9 +163,10 @@ export const getQA = async (question: string, base64Image?: string) => {
 
 // Checks if a daily goal sentence is grammatically acceptable
 export const checkDailyGoal = async (input: string) => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Check if this sentence is grammatically correct English: "${input}". If it is correct enough for a beginner, say "SUCCESS". Otherwise, explain the mistake briefly in Bengali.`,
+    contents: [{ parts: [{ text: `Check if this sentence is grammatically correct English: "${input}". If it is correct enough for a beginner, say "SUCCESS". Otherwise, explain the mistake briefly in Bengali.` }] }],
     config: {
       systemInstruction: "You are an English teacher. Evaluate the user's sentence. If it's acceptable for a beginner, output 'SUCCESS'. If not, provide a short correction in Bengali."
     }
@@ -169,13 +176,14 @@ export const checkDailyGoal = async (input: string) => {
 
 // Generates a script (speech, video script, play) based on topic and language
 export const getScriptContent = async (topic: string, lang: 'bn' | 'en') => {
-  const prompt = lang === 'bn'
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const promptText = lang === 'bn'
     ? `টপিক: "${topic}"। এই টপিকটির ওপর একটি চমৎকার স্ক্রিপ্ট লেখো বাংলা ভাষায়। এটি হতে পারে কোনো বক্তব্য (Speech), ইউটিউব ভিডিওর চিত্রনাট্য (YouTube Script) বা ছোট নাটকের অংশ। খুব সাবলীল ভাষায় এবং আকর্ষণীয়ভাবে লেখো। শুরুতে অবশ্যই "আসসালামু আলাইকুম" বলবে।`
     : `Topic: "${topic}". Write an excellent script on this topic in English. It could be a Speech, a YouTube Video Script, or a Short Play segment. Write it in an engaging and creative way. Start with the Bengali greeting "আসসালামু আলাইকুম" but write the rest in English.`;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: prompt,
+    model: 'gemini-3-pro-preview', // Script writing is a complex creative task
+    contents: [{ parts: [{ text: promptText }] }],
     config: {
       systemInstruction: "You are a creative scriptwriter and content creator. You help students write speeches, video scripts, and presentations. Always provide high-quality, structured content. MANDATORY: Start every response with the Bengali greeting 'আসসালামু আলাইকুম'."
     }
