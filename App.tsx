@@ -47,7 +47,12 @@ import {
   LogOut,
   User,
   Lock,
-  List
+  List,
+  Eye,
+  EyeOff,
+  UserX,
+  ShieldAlert,
+  ShieldOff
 } from 'lucide-react';
 import { AppMode, UserProfile, HelpMessage, AdminProfile, StudyLink, Notice } from './types';
 import { 
@@ -252,12 +257,31 @@ const App: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
 
-  // Persistence logic
+  // Persistence logic for allUsers
+  useEffect(() => {
+    localStorage.setItem('studybuddy_users_db', JSON.stringify(allUsers));
+    
+    // Check if current user was deleted or blocked by admin
+    if (currentUser) {
+      const matchingUser = allUsers.find(u => u.id === currentUser.id);
+      if (!matchingUser || matchingUser.isBlocked) {
+        setCurrentUser(null);
+        if (matchingUser?.isBlocked) {
+           alert("আপনার অ্যাকাউন্টটি ব্লক করা হয়েছে। অনুগ্রহ করে অ্যাডমিনের সাথে যোগাযোগ করুন।");
+        }
+      } else {
+        // Keep current user updated with data from allUsers (like points etc)
+        // But we avoid setting it every time to prevent infinite loops if not careful.
+        // Usually, changes flow from currentUser -> allUsers. 
+        // Here we handle the delete/block case.
+      }
+    }
+  }, [allUsers]);
+
+  // Handle current user changes flowing to database
   useEffect(() => {
     if (currentUser) {
-      const updatedUsers = allUsers.map(u => u.id === currentUser.id ? currentUser : u);
-      setAllUsers(updatedUsers);
-      localStorage.setItem('studybuddy_users_db', JSON.stringify(updatedUsers));
+      setAllUsers(prev => prev.map(u => u.id === currentUser.id ? currentUser : u));
       localStorage.setItem('studybuddy_active_user_id', currentUser.id);
     } else {
       localStorage.removeItem('studybuddy_active_user_id');
@@ -522,7 +546,7 @@ const App: React.FC = () => {
         {mode === AppMode.QA && <QAView setLoading={setLoading} />}
         {mode === AppMode.FRIEND_CHAT && <FriendChatView setLoading={setLoading} />}
         {mode === AppMode.HELP_LINE && <HelpLineView helpMessages={helpMessages} setHelpMessages={setHelpMessages} userId={currentUser?.id || 'guest'} isAdmin={isAdmin} adminName={adminProfile.name} />}
-        {mode === AppMode.ADMIN && <AdminPanel isAdmin={isAdmin} setIsAdmin={setIsAdmin} setMode={setMode} helpMessages={helpMessages} setHelpMessages={setHelpMessages} adminProfile={adminProfile} setAdminProfile={setAdminProfile} notices={notices} setNotices={setNotices} studyLinks={studyLinks} setStudyLinks={setStudyLinks} homeBanner={homeBanner} setHomeBanner={setHomeBanner} homeBannerSize={homeBannerSize} setHomeBannerSize={setHomeBannerSize} allUsers={allUsers} />}
+        {mode === AppMode.ADMIN && <AdminPanel isAdmin={isAdmin} setIsAdmin={setIsAdmin} setMode={setMode} helpMessages={helpMessages} setHelpMessages={setHelpMessages} adminProfile={adminProfile} setAdminProfile={setAdminProfile} notices={notices} setNotices={setNotices} studyLinks={studyLinks} setStudyLinks={setStudyLinks} homeBanner={homeBanner} setHomeBanner={setHomeBanner} homeBannerSize={homeBannerSize} setHomeBannerSize={setHomeBannerSize} allUsers={allUsers} setAllUsers={setAllUsers} />}
         {mode === AppMode.GOAL && <GoalView addPoints={addPoints} updateCount={updateChallengeCount} currentCount={currentUser?.dailyChallengeCount || 0} setLoading={setLoading} />}
         {mode === AppMode.PROFILE && <ProfileView profile={currentUser} setProfile={setCurrentUser} stats={userStats} onLogout={handleLogout} />}
       </main>
@@ -563,6 +587,10 @@ const AuthView: React.FC<{
     if (isLogin) {
       const user = users.find(u => u.email === email && u.password === password);
       if (user) {
+        if (user.isBlocked) {
+          setError('আপনার অ্যাকাউন্টটি ব্লক করা হয়েছে। অনুগ্রহ করে অ্যাডমিনের সাথে যোগাযোগ করুন।');
+          return;
+        }
         onLogin(user);
       } else {
         setError('ভুল ইমেইল বা পাসওয়ার্ড! আবার চেষ্টা করুন।');
@@ -587,7 +615,8 @@ const AuthView: React.FC<{
         streak: 0,
         dailyChallengeCount: 0,
         lastChallengeDate: new Date().toDateString(),
-        joinDate: new Date().toLocaleDateString('bn-BD')
+        joinDate: new Date().toLocaleDateString('bn-BD'),
+        isBlocked: false
       };
       
       setAllUsers(prev => [...prev, newUser]);
@@ -754,17 +783,36 @@ const HelpLineView = ({ helpMessages, setHelpMessages, userId, isAdmin, adminNam
   );
 };
 
-const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessages, adminProfile, setAdminProfile, notices, setNotices, studyLinks, setStudyLinks, homeBanner, setHomeBanner, homeBannerSize, setHomeBannerSize, allUsers }: any) => {
+const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessages, adminProfile, setAdminProfile, notices, setNotices, studyLinks, setStudyLinks, homeBanner, setHomeBanner, homeBannerSize, setHomeBannerSize, allUsers, setAllUsers }: any) => {
   const [id, setId] = useState('');
   const [pass, setPass] = useState('');
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'messages' | 'notice' | 'links' | 'banner'>('dashboard');
   const [noticeInput, setNoticeInput] = useState('');
   const [publishMessage, setPublishMessage] = useState<string | null>(null);
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
   const bannerInputRef = useRef<HTMLInputElement>(null);
   
   const [linkTitle, setLinkTitle] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
+
+  const togglePasswordVisibility = (uid: string) => {
+    setVisiblePasswords(prev => ({ ...prev, [uid]: !prev[uid] }));
+  };
+
+  const handleBlockUser = (uid: string) => {
+    setAllUsers((prev: UserProfile[]) => prev.map(u => u.id === uid ? { ...u, isBlocked: !u.isBlocked } : u));
+    setPublishMessage('ইউজার স্ট্যাটাস আপডেট করা হয়েছে।');
+    setTimeout(() => setPublishMessage(null), 3000);
+  };
+
+  const handleRemoveUser = (uid: string) => {
+    if (window.confirm("আপনি কি নিশ্চিতভাবে এই ইউজারকে ডিলিট করতে চান? এই কাজ আর ফেরত আনা যাবে না।")) {
+      setAllUsers((prev: UserProfile[]) => prev.filter(u => u.id !== uid));
+      setPublishMessage('ইউজারকে ডিলিট করা হয়েছে।');
+      setTimeout(() => setPublishMessage(null), 3000);
+    }
+  };
 
   const handleLogin = () => {
     const adminEmail = 'romantechgp@gmail.com';
@@ -1073,7 +1121,75 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
         )}
 
         {activeTab === 'users' && (
-          <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 animate-in slide-up"><div className="flex items-center justify-between mb-8"><h3 className="text-2xl font-black text-slate-800">সকল ইউজার ডাটাবেস</h3><div className="relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} /><input className="pl-12 pr-6 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-100 font-bold text-sm" placeholder="ইউজার খুঁজুন..." /></div></div><div className="overflow-x-auto rounded-3xl border border-slate-50"><table className="w-full text-left"><thead className="bg-slate-50"><tr className="text-[10px] font-black uppercase tracking-widest text-slate-400"><th className="p-6">ইউজার</th><th className="p-6">ইমেইল</th><th className="p-6">পয়েন্ট</th><th className="p-6">যোগদান</th></tr></thead><tbody className="divide-y divide-slate-50">{allUsers.map(user => (<tr key={user.id} className="hover:bg-slate-50/50 transition-colors"><td className="p-6"><div className="flex items-center gap-4"><div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 font-black text-sm">{user.name.charAt(0)}</div><span className="font-bold text-slate-700">{user.name}</span></div></td><td className="p-6 text-sm text-slate-400 font-medium">{user.email}</td><td className="p-6 text-indigo-600 font-black">{user.points}</td><td className="p-6 text-xs text-slate-300 font-bold">{user.joinDate}</td></tr>))}</tbody></table></div></div>
+          <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 animate-in slide-up">
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-2xl font-black text-slate-800">সকল ইউজার ডাটাবেস</h3>
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <input className="pl-12 pr-6 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-100 font-bold text-sm" placeholder="ইউজার খুঁজুন..." />
+              </div>
+            </div>
+            <div className="overflow-x-auto rounded-3xl border border-slate-50">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50">
+                  <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    <th className="p-6">ইউজার</th>
+                    <th className="p-6">ইমেইল</th>
+                    <th className="p-6">পাসওয়ার্ড</th>
+                    <th className="p-6">পয়েন্ট</th>
+                    <th className="p-6">অ্যাকশন</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {allUsers.map(user => (
+                    <tr key={user.id} className={`hover:bg-slate-50/50 transition-colors ${user.isBlocked ? 'bg-red-50/30' : ''}`}>
+                      <td className="p-6">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 font-black text-sm">
+                            {user.photoUrl ? <img src={user.photoUrl} className="w-full h-full object-cover rounded-xl" /> : user.name.charAt(0)}
+                          </div>
+                          <div>
+                            <span className="font-bold text-slate-700 block">{user.name}</span>
+                            {user.isBlocked && <span className="text-[8px] font-black text-red-500 uppercase tracking-tighter">ব্লকড (Blocked)</span>}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-6 text-sm text-slate-400 font-medium">{user.email}</td>
+                      <td className="p-6">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono font-bold bg-slate-100 px-2 py-1 rounded">
+                            {visiblePasswords[user.id] ? user.password : '••••••••'}
+                          </span>
+                          <button onClick={() => togglePasswordVisibility(user.id)} className="text-slate-400 hover:text-indigo-600">
+                            {visiblePasswords[user.id] ? <EyeOff size={14} /> : <Eye size={14} />}
+                          </button>
+                        </div>
+                      </td>
+                      <td className="p-6 text-indigo-600 font-black">{user.points}</td>
+                      <td className="p-6">
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => handleBlockUser(user.id)}
+                            className={`p-2 rounded-xl border transition-colors ${user.isBlocked ? 'bg-red-600 text-white border-red-700 hover:bg-red-700' : 'bg-white text-slate-400 border-slate-100 hover:text-red-500 hover:border-red-100'}`}
+                            title={user.isBlocked ? "আনব্লক করুন" : "ব্লক করুন"}
+                          >
+                            {user.isBlocked ? <ShieldOff size={16} /> : <ShieldAlert size={16} />}
+                          </button>
+                          <button 
+                            onClick={() => handleRemoveUser(user.id)}
+                            className="p-2 bg-white text-slate-400 border border-slate-100 rounded-xl hover:text-red-500 hover:border-red-100 transition-colors"
+                            title="ইউজার মুছুন"
+                          >
+                            <UserX size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
         
         {activeTab === 'messages' && (

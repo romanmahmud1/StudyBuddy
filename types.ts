@@ -11,6 +11,7 @@ export interface UserProfile {
   dailyChallengeCount: number;
   lastChallengeDate: string;
   joinDate: string;
+  isBlocked?: boolean;
 }
 
 export interface AdminProfile {
