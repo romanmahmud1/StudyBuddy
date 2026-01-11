@@ -10,7 +10,7 @@ import {
   HelpCircle, 
   ArrowLeft,
   ShieldCheck,
-  Send,
+  Send, 
   Mic,
   Camera,
   Settings,
@@ -52,7 +52,9 @@ import {
   EyeOff,
   UserX,
   ShieldAlert,
-  ShieldOff
+  ShieldOff,
+  Key,
+  Info
 } from 'lucide-react';
 import { AppMode, UserProfile, HelpMessage, AdminProfile, StudyLink, Notice } from './types';
 import { 
@@ -291,7 +293,7 @@ const App: React.FC = () => {
       const matchingUser = allUsers.find(u => u.id === currentUser.id);
       if (!matchingUser || matchingUser.isBlocked) {
         setCurrentUser(null);
-        if (matchingUser?.isBlocked) alert("অ্যাকাউন্ট ব্লকড!");
+        if (matchingUser?.isBlocked) alert("আপনার অ্যাকাউন্ট ব্লক করা হয়েছে!");
       }
     }
   }, [allUsers]);
@@ -472,7 +474,7 @@ const App: React.FC = () => {
 
 const AuthView: React.FC<{ onLogin: (user: UserProfile) => void; users: UserProfile[]; setAllUsers: React.Dispatch<React.SetStateAction<UserProfile[]>>; }> = ({ onLogin, users, setAllUsers }) => {
   const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
@@ -481,14 +483,28 @@ const AuthView: React.FC<{ onLogin: (user: UserProfile) => void; users: UserProf
     e.preventDefault();
     setError('');
     if (isLogin) {
-      const user = users.find(u => u.email === email && u.password === password);
+      const user = users.find(u => u.username === username && u.password === password);
       if (user) {
-        if (user.isBlocked) return setError('অ্যাকাউন্ট ব্লকড!');
+        if (user.isBlocked) return setError('আপনার অ্যাকাউন্টটি ব্লক করা হয়েছে!');
         onLogin(user);
-      } else setError('ভুল ইমেইল বা পাসওয়ার্ড!');
+      } else setError('ভুল ইউজার নেম বা পাসওয়ার্ড!');
     } else {
-      if (users.some(u => u.email === email)) return setError('ইমেইলটি ইতিমধ্যে ব্যবহৃত।');
-      const newUser: UserProfile = { id: Date.now().toString(), email, password, name, bio: 'স্টাডিবাডি ইউজ করছি!', points: 0, streak: 0, dailyChallengeCount: 0, lastChallengeDate: new Date().toDateString(), joinDate: new Date().toLocaleDateString('bn-BD'), isBlocked: false };
+      if (users.some(u => u.username === username)) return setError('ইউজার নেমটি ইতিমধ্যে ব্যবহৃত।');
+      if (!username || !password || !name) return setError('সবগুলো ঘর পূরণ করুন!');
+      
+      const newUser: UserProfile = { 
+        id: Date.now().toString(), 
+        username, 
+        password, 
+        name, 
+        bio: 'স্টাডিবাডি ইউজ করছি!', 
+        points: 0, 
+        streak: 0, 
+        dailyChallengeCount: 0, 
+        lastChallengeDate: new Date().toDateString(), 
+        joinDate: new Date().toLocaleDateString('bn-BD'), 
+        isBlocked: false 
+      };
       setAllUsers(prev => [...prev, newUser]);
       onLogin(newUser);
     }
@@ -500,10 +516,10 @@ const AuthView: React.FC<{ onLogin: (user: UserProfile) => void; users: UserProf
         <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto text-indigo-600">{isLogin ? <LogIn size={40} /> : <UserPlus size={40} />}</div>
         <h2 className="text-3xl font-black text-slate-800">{isLogin ? 'লগইন করুন' : 'সাইন-আপ করুন'}</h2>
         <form onSubmit={handleSubmit} className="space-y-5 text-left">
-          {!isLogin && <div className="space-y-1"><label className="text-[11px] font-black text-slate-400 uppercase ml-4">নাম</label><input className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold" placeholder="নাম লিখুন" value={name} onChange={e => setName(e.target.value)} /></div>}
-          <div className="space-y-1"><label className="text-[11px] font-black text-slate-400 uppercase ml-4">ইমেইল</label><input type="email" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold" placeholder="example@gmail.com" value={email} onChange={e => setEmail(e.target.value)} /></div>
-          <div className="space-y-1"><label className="text-[11px] font-black text-slate-400 uppercase ml-4">পাসওয়ার্ড</label><input type="password" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold" placeholder="পাসওয়ার্ড" value={password} onChange={e => setPassword(e.target.value)} /></div>
-          {error && <p className="text-xs font-bold text-red-500 text-center">{error}</p>}<button className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-xl shadow-lg">নিশ্চিত করুন</button>
+          {!isLogin && <div className="space-y-1"><label className="text-[11px] font-black text-slate-400 uppercase ml-4">আপনার নাম</label><input className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold shadow-inner" placeholder="নাম লিখুন" value={name} onChange={e => setName(e.target.value)} /></div>}
+          <div className="space-y-1"><label className="text-[11px] font-black text-slate-400 uppercase ml-4">ইউজার নেম</label><input type="text" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold shadow-inner" placeholder="আপনার ইউজার নেম" value={username} onChange={e => setUsername(e.target.value)} /></div>
+          <div className="space-y-1"><label className="text-[11px] font-black text-slate-400 uppercase ml-4">পাসওয়ার্ড</label><input type="password" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold shadow-inner" placeholder="পাসওয়ার্ড দিন" value={password} onChange={e => setPassword(e.target.value)} /></div>
+          {error && <p className="text-xs font-bold text-red-500 text-center animate-shake">{error}</p>}<button className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-xl shadow-lg hover:bg-indigo-700 transition-colors border-b-4 border-indigo-900 active:border-b-0 active:translate-y-1">নিশ্চিত করুন</button>
         </form>
         <button onClick={() => setIsLogin(!isLogin)} className="text-indigo-600 font-black text-sm hover:underline">{isLogin ? 'নতুন অ্যাকাউন্ট খুলুন' : 'লগইন করুন'}</button>
       </div>
@@ -520,7 +536,7 @@ const StudyView = ({ setLoading }: any) => {
   const [result, setResult] = useState<string | null>(null);
   const handleSubmit = async () => { if (!input.trim()) return; setLoading(true); try { const res = await getStudyExplanation(input); setResult(res || 'দুঃখিত!'); } catch (e) { setResult('ভুল হয়েছে।'); } finally { setLoading(false); } };
   return (
-    <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6 animate-in slide-up"><div className="flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-4 bg-blue-50 rounded-3xl text-blue-600"><BookOpen size={32} /></div><h2 className="text-2xl font-black text-slate-800">সহজ পড়া মোড</h2></div><STTButton onResult={setInput} /></div><textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none min-h-[200px] font-bold" placeholder="টপিক..." value={input} onChange={e => setInput(e.target.value)} /><button onClick={handleSubmit} className="w-full bg-blue-600 text-white py-5 rounded-3xl font-black flex items-center justify-center gap-3 shadow-xl text-xl"><Send size={20} /> শুরু করো</button>{result && <div className="p-8 bg-blue-50/50 rounded-[32px] border-2 border-blue-100 whitespace-pre-wrap leading-relaxed shadow-sm font-medium">{result}</div>}</div>
+    <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6 animate-in slide-up"><div className="flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-4 bg-blue-50 rounded-3xl text-blue-600"><BookOpen size={32} /></div><h2 className="text-2xl font-black text-slate-800">সহজ পড়া মোড</h2></div><STTButton onResult={setInput} /></div><textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none min-h-[200px] font-bold shadow-inner" placeholder="টপিক..." value={input} onChange={e => setInput(e.target.value)} /><button onClick={handleSubmit} className="w-full bg-blue-600 text-white py-5 rounded-3xl font-black flex items-center justify-center gap-3 shadow-xl text-xl hover:bg-blue-700 transition-colors border-b-4 border-blue-900 active:border-b-0 active:translate-y-1"><Send size={20} /> শুরু করো</button>{result && <div className="p-8 bg-blue-50/50 rounded-[32px] border-2 border-blue-100 whitespace-pre-wrap leading-relaxed shadow-sm font-medium animate-in slide-up">{result}</div>}</div>
   );
 };
 
@@ -532,7 +548,7 @@ const MathView = ({ setLoading }: any) => {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => setImage(reader.result as string); reader.readAsDataURL(file); } };
   const handleSubmit = async () => { if (!input.trim() && !image) return; setLoading(true); try { const base64Data = image ? image.split(',')[1] : undefined; const res = await solveMath(input, base64Data); setResult(res || 'দুঃখিত!'); } catch (e) { setResult('ভুল হয়েছে।'); } finally { setLoading(false); } };
   return (
-    <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6 animate-in slide-up"><div className="flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-4 bg-purple-50 rounded-3xl text-purple-600"><Calculator size={32} /></div><h2 className="text-2xl font-black text-slate-800">অংক সমাধানকারী</h2></div><div className="flex gap-2"><STTButton onResult={setInput} /><button onClick={() => fileInputRef.current?.click()} className="p-3 bg-slate-50 rounded-2xl"><Camera size={20} /></button><input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} /></div></div>{image && <ImagePreview image={image} onClear={() => setImage(null)} />}<textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none min-h-[150px] font-bold" placeholder="অংক..." value={input} onChange={e => setInput(e.target.value)} /><button onClick={handleSubmit} className="w-full bg-purple-600 text-white py-5 rounded-3xl font-black shadow-xl flex items-center justify-center gap-3 text-xl"><Calculator size={20} /> সমাধান করো</button>{result && <div className="p-8 bg-purple-50/50 rounded-[32px] border-2 border-purple-100 whitespace-pre-wrap leading-relaxed shadow-sm font-medium">{result}</div>}</div>
+    <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6 animate-in slide-up"><div className="flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-4 bg-purple-50 rounded-3xl text-purple-600"><Calculator size={32} /></div><h2 className="text-2xl font-black text-slate-800">অংক সমাধানকারী</h2></div><div className="flex gap-2"><STTButton onResult={setInput} /><button onClick={() => fileInputRef.current?.click()} className="p-3 bg-slate-50 rounded-2xl shadow-sm border border-slate-100 text-slate-400 hover:text-indigo-600 transition-all"><Camera size={20} /></button><input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} /></div></div>{image && <ImagePreview image={image} onClear={() => setImage(null)} />}<textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none min-h-[150px] font-bold shadow-inner" placeholder="অংক..." value={input} onChange={e => setInput(e.target.value)} /><button onClick={handleSubmit} className="w-full bg-purple-600 text-white py-5 rounded-3xl font-black shadow-xl flex items-center justify-center gap-3 text-xl hover:bg-purple-700 transition-colors border-b-4 border-purple-900 active:border-b-0 active:translate-y-1"><Calculator size={20} /> সমাধান করো</button>{result && <div className="p-8 bg-purple-50/50 rounded-[32px] border-2 border-purple-100 whitespace-pre-wrap leading-relaxed shadow-sm font-medium animate-in slide-up">{result}</div>}</div>
   );
 };
 
@@ -542,7 +558,7 @@ const SpellingView = ({ setLoading }: any) => {
   const [result, setResult] = useState<string | null>(null);
   const handleSubmit = async () => { if (!input.trim()) return; setLoading(true); try { const res = await getSpellingCorrection(input, lang); setResult(res || 'দুঃখিত!'); } catch (e) { setResult('ভুল হয়েছে।'); } finally { setLoading(false); } };
   return (
-    <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6 animate-in slide-up"><div className="flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-4 bg-cyan-50 rounded-3xl text-cyan-600"><Type size={32} /></div><h2 className="text-2xl font-black text-slate-800">বানান শিখুন</h2></div><div className="flex gap-2"><button onClick={() => setLang('bn')} className={`px-4 py-2 rounded-xl font-black text-xs ${lang === 'bn' ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-400'}`}>বাংলা</button><button onClick={() => setLang('en')} className={`px-4 py-2 rounded-xl font-black text-xs ${lang === 'en' ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-400'}`}>ENG</button></div></div><div className="relative"><textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none min-h-[150px] font-bold" placeholder="টেক্সট..." value={input} onChange={e => setInput(e.target.value)} /><div className="absolute bottom-4 right-4"><STTButton onResult={setInput} lang={lang === 'bn' ? 'bn-BD' : 'en-US'} /></div></div><button onClick={handleSubmit} className="w-full bg-cyan-600 text-white py-5 rounded-3xl font-black shadow-xl text-xl flex items-center justify-center gap-3"><Check size={20} /> চেক করো</button>{result && <div className="p-8 bg-cyan-50/50 rounded-[32px] border-2 border-cyan-100 relative text-justify">{result}<div className="absolute top-4 right-4"><CopyButton text={result} /></div></div>}</div>
+    <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6 animate-in slide-up"><div className="flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-4 bg-cyan-50 rounded-3xl text-cyan-600"><Type size={32} /></div><h2 className="text-2xl font-black text-slate-800">বানান শিখুন</h2></div><div className="flex gap-2"><button onClick={() => setLang('bn')} className={`px-4 py-2 rounded-xl font-black text-xs ${lang === 'bn' ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-50 text-slate-400'}`}>বাংলা</button><button onClick={() => setLang('en')} className={`px-4 py-2 rounded-xl font-black text-xs ${lang === 'en' ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-50 text-slate-400'}`}>ENG</button></div></div><div className="relative"><textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none min-h-[150px] font-bold shadow-inner" placeholder="টেক্সট..." value={input} onChange={e => setInput(e.target.value)} /><div className="absolute bottom-4 right-4"><STTButton onResult={setInput} lang={lang === 'bn' ? 'bn-BD' : 'en-US'} /></div></div><button onClick={handleSubmit} className="w-full bg-cyan-600 text-white py-5 rounded-3xl font-black shadow-xl text-xl flex items-center justify-center gap-3 hover:bg-cyan-700 transition-colors border-b-4 border-cyan-900 active:border-b-0 active:translate-y-1"><Check size={20} /> চেক করো</button>{result && <div className="p-8 bg-cyan-50/50 rounded-[32px] border-2 border-cyan-100 relative text-justify animate-in slide-up">{result}<div className="absolute top-4 right-4"><CopyButton text={result} /></div></div>}</div>
   );
 };
 
@@ -555,7 +571,7 @@ const SpeakingView = ({ setLoading }: any) => {
   const handleSubmit = async () => { if (!input.trim()) return; setLoading(true); try { const rawRes = await getTranslationAndGuide(input, direction); if (rawRes) { const transMatch = rawRes.match(/TRANSLATION:\s*(.*)/); const pronMatch = rawRes.match(/PRONUNCIATION:\s*(.*)/); if (transMatch) setResult({ translation: transMatch[1].trim(), pronunciation: pronMatch ? pronMatch[1].trim() : '' }); } } catch (e) { console.error(e); } finally { setLoading(false); } };
   const playAudio = async () => { if (!result || isSpeaking) return; setIsSpeaking(true); try { const base64Audio = await getSpeech(direction === 'bn-en' ? result.translation : input); if (base64Audio) { if (!audioContextRef.current) audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 }); const ctx = audioContextRef.current; const audioBuffer = await decodeAudioData(decodeBase64(base64Audio), ctx, 24000, 1); const source = ctx.createBufferSource(); source.buffer = audioBuffer; source.connect(ctx.destination); source.onended = () => setIsSpeaking(false); source.start(); } else setIsSpeaking(false); } catch (e) { setIsSpeaking(false); } };
   return (
-    <div className="space-y-6 animate-in slide-up"><div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6"><div className="flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-4 bg-green-50 rounded-3xl text-green-600"><Languages size={32} /></div><h2 className="text-2xl font-black text-slate-800">অনুবাদ</h2></div><div className="flex gap-2"><STTButton onResult={setInput} lang={direction === 'bn-en' ? 'bn-BD' : 'en-US'} /><button onClick={() => {setDirection(prev => prev === 'bn-en' ? 'en-bn' : 'bn-en'); setResult(null); setInput('');}} className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-2xl font-black text-xs border border-indigo-100">CHANGE</button></div></div><div className="relative"><textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none min-h-[150px] font-bold" placeholder="লিখুন..." value={input} onChange={e => setInput(e.target.value)} /><button onClick={handleSubmit} disabled={!input.trim()} className="absolute bottom-4 right-4 bg-green-600 text-white p-4 rounded-2xl hover:bg-green-700 shadow-lg"><Send size={20} /></button></div></div>{result && (<div className="bg-white p-6 sm:p-10 rounded-[40px] shadow-2xl border-4 border-green-50 space-y-6 text-center animate-in zoom-in"><div className="space-y-2"><span className="text-[10px] font-black uppercase text-slate-400">অনুবাদ</span><p className="font-bold text-slate-700">{result.translation}</p></div><div className="p-4 bg-slate-50 rounded-2xl"><span className="text-[10px] font-black text-slate-400">উচ্চারণ</span><p className="font-black text-green-700">{result.pronunciation}</p></div><div className="grid grid-cols-2 gap-4"><button onClick={playAudio} disabled={isSpeaking} className="flex items-center justify-center gap-2 p-4 bg-indigo-600 text-white rounded-2xl font-black">{isSpeaking ? <RefreshCw className="animate-spin" size={20} /> : <Volume2 size={20} />} শুনুন</button><button className="flex items-center justify-center gap-2 p-4 bg-white border-2 border-green-600 text-green-600 rounded-2xl font-black"><Mic size={20} /> বলুন</button></div></div>)}</div>
+    <div className="space-y-6 animate-in slide-up"><div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6"><div className="flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-4 bg-green-50 rounded-3xl text-green-600"><Languages size={32} /></div><h2 className="text-2xl font-black text-slate-800">অনুবাদ</h2></div><div className="flex gap-2"><STTButton onResult={setInput} lang={direction === 'bn-en' ? 'bn-BD' : 'en-US'} /><button onClick={() => {setDirection(prev => prev === 'bn-en' ? 'en-bn' : 'bn-en'); setResult(null); setInput('');}} className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-2xl font-black text-xs border border-indigo-100 shadow-sm hover:bg-indigo-100 transition-colors">CHANGE</button></div></div><div className="relative"><textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none min-h-[150px] font-bold shadow-inner" placeholder="লিখুন..." value={input} onChange={e => setInput(e.target.value)} /><button onClick={handleSubmit} disabled={!input.trim()} className="absolute bottom-4 right-4 bg-green-600 text-white p-4 rounded-2xl hover:bg-green-700 shadow-lg transition-colors active:scale-95"><Send size={20} /></button></div></div>{result && (<div className="bg-white p-6 sm:p-10 rounded-[40px] shadow-2xl border-4 border-green-50 space-y-6 text-center animate-in zoom-in"><div className="space-y-2"><span className="text-[10px] font-black uppercase text-slate-400">অনুবাদ</span><p className="font-bold text-slate-700">{result.translation}</p></div><div className="p-4 bg-slate-50 rounded-2xl"><span className="text-[10px] font-black text-slate-400">উচ্চারণ</span><p className="font-black text-green-700">{result.pronunciation}</p></div><div className="grid grid-cols-2 gap-4"><button onClick={playAudio} disabled={isSpeaking} className="flex items-center justify-center gap-2 p-4 bg-indigo-600 text-white rounded-2xl font-black shadow-md hover:bg-indigo-700 transition-colors">{isSpeaking ? <RefreshCw className="animate-spin" size={20} /> : <Volume2 size={20} />} শুনুন</button><button className="flex items-center justify-center gap-2 p-4 bg-white border-2 border-green-600 text-green-600 rounded-2xl font-black shadow-sm hover:bg-green-50 transition-colors"><Mic size={20} /> বলুন</button></div></div>)}</div>
   );
 };
 
@@ -567,7 +583,7 @@ const QAView = ({ setLoading }: any) => {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => setImage(reader.result as string); reader.readAsDataURL(file); } };
   const handleSubmit = async () => { if (!input.trim() && !image) return; setLoading(true); try { const base64Data = image ? image.split(',')[1] : undefined; const res = await getQA(input, base64Data); setResult(res || 'দুঃখিত!'); } catch (e) { setResult('ভুল হয়েছে।'); } finally { setLoading(false); } };
   return (
-    <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6 animate-in slide-up"><div className="flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-4 bg-orange-50 rounded-3xl text-orange-600"><HelpCircle size={32} /></div><h2 className="text-2xl font-black text-slate-800">প্রশ্ন ও উত্তর</h2></div><div className="flex gap-2"><STTButton onResult={setInput} /><button onClick={() => fileInputRef.current?.click()} className="p-3 bg-slate-50 rounded-2xl"><Camera size={20} /></button><input type="file" ref={fileInputRef} className="hidden" onChange={handleImageUpload} /></div></div>{image && <ImagePreview image={image} onClear={() => setImage(null)} />}<textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none min-h-[150px] font-bold" placeholder="প্রশ্ন..." value={input} onChange={e => setInput(e.target.value)} /><button onClick={handleSubmit} className="w-full bg-orange-600 text-white py-5 rounded-3xl font-black shadow-xl text-xl flex items-center justify-center gap-3"><Send size={24} /> উত্তর খোঁজো</button>{result && <div className="p-8 bg-orange-50/50 rounded-[32px] border-2 border-orange-100 whitespace-pre-wrap">{result}</div>}</div>
+    <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6 animate-in slide-up"><div className="flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-4 bg-orange-50 rounded-3xl text-orange-600"><HelpCircle size={32} /></div><h2 className="text-2xl font-black text-slate-800">প্রশ্ন ও উত্তর</h2></div><div className="flex gap-2"><STTButton onResult={setInput} /><button onClick={() => fileInputRef.current?.click()} className="p-3 bg-slate-50 rounded-2xl shadow-sm border border-slate-100 text-slate-400 hover:text-indigo-600 transition-all"><Camera size={20} /></button><input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} /></div></div>{image && <ImagePreview image={image} onClear={() => setImage(null)} />}<textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none min-h-[150px] font-bold shadow-inner" placeholder="প্রশ্ন..." value={input} onChange={e => setInput(e.target.value)} /><button onClick={handleSubmit} className="w-full bg-orange-600 text-white py-5 rounded-3xl font-black shadow-xl text-xl flex items-center justify-center gap-3 hover:bg-orange-700 transition-colors border-b-4 border-orange-900 active:border-b-0 active:translate-y-1"><Send size={24} /> উত্তর খোঁজো</button>{result && <div className="p-8 bg-orange-50/50 rounded-[32px] border-2 border-orange-100 whitespace-pre-wrap animate-in slide-up">{result}</div>}</div>
   );
 };
 
@@ -576,7 +592,7 @@ const FriendChatView = ({ setLoading }: any) => {
   const [chatLog, setChatLog] = useState<{sender: 'user' | 'ai', text: string}[]>([{ sender: 'ai', text: 'আসসালামু আলাইকুম! Hello! I am your AI Study Friend. Let\'s practice English! (চলো ইংরেজি প্র্যাকটিস করি!)' }]);
   const handleSubmit = async () => { if (!input.trim()) return; const userMsg = input; setInput(''); setChatLog(prev => [...prev, { sender: 'user', text: userMsg }]); setLoading(true); try { const history = chatLog.map(msg => ({ role: msg.sender === 'user' ? 'user' : 'model', parts: [{ text: msg.text }] })); const res = await chatWithAiFriend(history, userMsg); setChatLog(prev => [...prev, { sender: 'ai', text: res || 'I see!' }]); } catch (e) { setChatLog(prev => [...prev, { sender: 'ai', text: 'Confusion!' }]); } finally { setLoading(false); } };
   return (
-    <div className="bg-white rounded-[48px] shadow-xl flex flex-col h-[600px] overflow-hidden border border-slate-100 animate-in slide-up"><div className="p-6 border-b bg-gradient-to-r from-pink-500 to-rose-500 text-white flex items-center justify-between"><div className="flex items-center gap-4"><div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center font-black">AI</div><h3 className="font-black">এআই বন্ধু</h3></div><STTButton onResult={setInput} lang="en-US" /></div><div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/50">{chatLog.map((msg, i) => (<div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[85%] p-4 rounded-[24px] font-bold text-sm shadow-sm ${msg.sender === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'}`}>{msg.text}</div></div>))}</div><div className="p-6 bg-white border-t flex gap-3"><input className="flex-1 bg-slate-100 border-none rounded-2xl px-6 py-4 outline-none font-bold" placeholder="ইংরেজিতে লিখুন..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} /><button onClick={handleSubmit} className="bg-pink-500 text-white p-4 rounded-2xl hover:bg-pink-600 active:scale-90"><Send size={24} /></button></div></div>
+    <div className="bg-white rounded-[48px] shadow-xl flex flex-col h-[600px] overflow-hidden border border-slate-100 animate-in slide-up"><div className="p-6 border-b bg-gradient-to-r from-pink-500 to-rose-500 text-white flex items-center justify-between"><div className="flex items-center gap-4"><div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center font-black shadow-sm">AI</div><h3 className="font-black">এআই বন্ধু</h3></div><STTButton onResult={setInput} lang="en-US" /></div><div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/50 custom-scrollbar">{chatLog.map((msg, i) => (<div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-up`}><div className={`max-w-[85%] p-4 rounded-[24px] font-bold text-sm shadow-sm ${msg.sender === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'}`}>{msg.text}</div></div>))}</div><div className="p-6 bg-white border-t flex gap-3 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]"><input className="flex-1 bg-slate-100 border-none rounded-2xl px-6 py-4 outline-none font-bold shadow-inner" placeholder="ইংরেজিতে লিখুন..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} /><button onClick={handleSubmit} className="bg-pink-500 text-white p-4 rounded-2xl hover:bg-pink-600 active:scale-90 shadow-lg transition-all"><Send size={24} /></button></div></div>
   );
 };
 
@@ -584,7 +600,7 @@ const HelpLineView = ({ helpMessages, setHelpMessages, userId, isAdmin, adminNam
   const [input, setInput] = useState('');
   const handleSendMessage = () => { if (!input.trim()) return; setHelpMessages((prev: any) => [...prev, { id: Date.now().toString(), userId, userName: isAdmin ? adminName : 'User', text: input, timestamp: Date.now(), isAdmin }]); setInput(''); };
   return (
-    <div className="bg-white rounded-[48px] shadow-xl flex flex-col h-[600px] overflow-hidden border border-slate-100"><div className="p-6 border-b bg-indigo-600 text-white flex items-center justify-between"><div className="flex items-center gap-3"><MessageCircle size={24} /><h3 className="font-black">হেল্প লাইন</h3></div><STTButton onResult={setInput} /></div><div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/30">{helpMessages.filter((m: any) => isAdmin || m.userId === userId).map((msg: any) => (<div key={msg.id} className={`flex ${msg.isAdmin === isAdmin ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[85%] p-4 rounded-[24px] font-bold text-sm shadow-sm ${msg.isAdmin === isAdmin ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'}`}><div className="text-[9px] opacity-60 mb-1">{msg.userName}</div>{msg.text}</div></div>))}</div><div className="p-6 bg-white border-t flex gap-3"><input className="flex-1 bg-slate-100 rounded-2xl px-6 py-4 outline-none font-bold" placeholder="মেসেজ..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendMessage()} /><button onClick={handleSendMessage} className="bg-indigo-600 text-white p-4 rounded-2xl hover:bg-indigo-700 active:scale-90"><Send size={24} /></button></div></div>
+    <div className="bg-white rounded-[48px] shadow-xl flex flex-col h-[600px] overflow-hidden border border-slate-100 animate-in slide-up"><div className="p-6 border-b bg-indigo-600 text-white flex items-center justify-between"><div className="flex items-center gap-3"><MessageCircle size={24} /><h3 className="font-black">হেল্প লাইন</h3></div><STTButton onResult={setInput} /></div><div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/30 custom-scrollbar">{helpMessages.filter((m: any) => isAdmin || m.userId === userId).map((msg: any) => (<div key={msg.id} className={`flex ${msg.isAdmin === isAdmin ? 'justify-end' : 'justify-start'} animate-in slide-up`}><div className={`max-w-[85%] p-4 rounded-[24px] font-bold text-sm shadow-sm ${msg.isAdmin === isAdmin ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'}`}><div className="text-[9px] font-black opacity-60 mb-1 uppercase tracking-tighter">{msg.userName}</div>{msg.text}</div></div>))}</div><div className="p-6 bg-white border-t flex gap-3 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]"><input className="flex-1 bg-slate-100 rounded-2xl px-6 py-4 outline-none font-bold shadow-inner" placeholder="মেসেজ..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendMessage()} /><button onClick={handleSendMessage} className="bg-indigo-600 text-white p-4 rounded-2xl hover:bg-indigo-700 active:scale-90 shadow-lg transition-all"><Send size={24} /></button></div></div>
   );
 };
 
@@ -605,49 +621,65 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
   const handleBanner = (e: any) => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onloadend = () => { setHomeBanner(r.result as string); setPublishMsg('ব্যানার আপডেটেড!'); setTimeout(() => setPublishMsg(null), 3000); }; r.readAsDataURL(f); } };
   const handleAddLink = () => { if (!linkT.trim() || !linkU.trim()) return; setStudyLinks([{ id: Date.now().toString(), title: linkT, url: linkU, date: new Date().toLocaleDateString() }, ...studyLinks]); setLinkT(''); setLinkU(''); setPublishMsg('লিঙ্ক অ্যাডেড!'); setTimeout(() => setPublishMsg(null), 3000); };
   
+  const handleResetPassword = (userId: string) => {
+    const newPassword = window.prompt("এই ইউজারটির জন্য নতুন একটি পাসওয়ার্ড লিখুন:");
+    if (newPassword && newPassword.trim()) {
+      setAllUsers((prev: UserProfile[]) => prev.map(u => u.id === userId ? { ...u, password: newPassword.trim() } : u));
+      setPublishMsg("ইউজারের পাসওয়ার্ড সফলভাবে আপডেট করা হয়েছে!");
+      setTimeout(() => setPublishMsg(null), 3000);
+    }
+  };
+
   if (isAdmin) {
     const totalPoints = allUsers.reduce((a: number, u: any) => a + u.points, 0);
     const challengesToday = allUsers.reduce((a: number, u: any) => a + u.dailyChallengeCount, 0);
     return (
       <div className="space-y-6 animate-in zoom-in">
-        <div className="bg-red-50 border-l-8 border-red-500 p-6 rounded-2xl"><h4 className="text-red-700 font-black">অ্যাডমিন মোড: রিমন মাহমুদ রোমান</h4></div>
-        <div className="bg-white p-6 rounded-[32px] shadow-sm flex gap-2 overflow-x-auto no-scrollbar">
+        <div className="bg-red-50 border-l-8 border-red-500 p-6 rounded-2xl shadow-sm"><h4 className="text-red-700 font-black">অ্যাডমিন মোড: রিমন মাহমুদ রোমান</h4></div>
+        <div className="bg-white p-6 rounded-[32px] shadow-sm flex gap-2 overflow-x-auto no-scrollbar border border-slate-100">
           {['dashboard', 'users', 'messages', 'notice', 'links', 'banner'].map((t: any) => (
             <button key={t} onClick={() => setActiveTab(t)} className={`px-5 py-2 rounded-xl font-black text-xs uppercase tracking-widest whitespace-nowrap transition-all ${activeTab === t ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}>{t}</button>
           ))}
-          <button onClick={() => setIsAdmin(false)} className="bg-red-50 text-red-600 px-5 py-2 rounded-xl font-black text-xs uppercase ml-auto">LOGOUT</button>
+          <button onClick={() => setIsAdmin(false)} className="bg-red-50 text-red-600 px-5 py-2 rounded-xl font-black text-xs uppercase ml-auto hover:bg-red-100 transition-colors">LOGOUT</button>
         </div>
-        {publishMsg && <div className="bg-green-50 text-green-700 p-4 rounded-xl border border-green-200 font-bold">{publishMsg}</div>}
+        {publishMsg && <div className="bg-green-50 text-green-700 p-4 rounded-xl border border-green-200 font-bold animate-in zoom-in">{publishMsg}</div>}
 
         {activeTab === 'dashboard' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-2"><div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center"><Users size={20} /></div><p className="text-[10px] font-black uppercase text-slate-400">মোট ইউজার</p><p className="text-3xl font-black">{allUsers.length}</p></div>
-            <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-2"><div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center"><Zap size={20} /></div><p className="text-[10px] font-black uppercase text-slate-400">আজকের লক্ষ্য</p><p className="text-3xl font-black">{challengesToday}</p></div>
-            <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-2"><div className="w-10 h-10 bg-yellow-50 text-yellow-600 rounded-xl flex items-center justify-center"><Star size={20} /></div><p className="text-[10px] font-black uppercase text-slate-400">মোট পয়েন্ট</p><p className="text-3xl font-black">{totalPoints}</p></div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 animate-in slide-up">
+            <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-2"><div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shadow-inner"><Users size={20} /></div><p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">মোট ইউজার</p><p className="text-3xl font-black text-slate-800">{allUsers.length}</p></div>
+            <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-2"><div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center shadow-inner"><Zap size={20} /></div><p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">আজকের লক্ষ্য</p><p className="text-3xl font-black text-slate-800">{challengesToday}</p></div>
+            <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-2"><div className="w-10 h-10 bg-yellow-50 text-yellow-600 rounded-xl flex items-center justify-center shadow-inner"><Star size={20} /></div><p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">মোট পয়েন্ট</p><p className="text-3xl font-black text-slate-800">{totalPoints}</p></div>
           </div>
         )}
 
         {activeTab === 'users' && (
-          <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 overflow-x-auto">
-            <h3 className="text-xl font-black mb-6">ইউজার ডাটাবেস</h3>
+          <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 overflow-x-auto animate-in slide-up">
+            <h3 className="text-xl font-black mb-6 text-slate-800">ইউজার ডাটাবেস</h3>
             <table className="w-full text-left">
-              <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400"><tr className="border-b"><th className="p-4">ইউজার</th><th className="p-4">ইমেইল</th><th className="p-4">পাসওয়ার্ড</th><th className="p-4">পয়েন্ট</th><th className="p-4">অ্যাকশন</th></tr></thead>
+              <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-widest"><tr className="border-b"><th className="p-4">ইউজার</th><th className="p-4">ইউজার নেম</th><th className="p-4">পাসওয়ার্ড</th><th className="p-4">পয়েন্ট</th><th className="p-4">অ্যাকশন</th></tr></thead>
               <tbody className="divide-y divide-slate-100">
                 {allUsers.map(u => (
-                  <tr key={u.id} className={`hover:bg-slate-50 transition-colors ${u.isBlocked ? 'bg-red-50/50' : ''}`}>
-                    <td className="p-4"><div className="flex items-center gap-3"><div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center font-black text-xs">{u.name.charAt(0)}</div><span className="font-bold text-sm">{u.name}</span></div></td>
-                    <td className="p-4 text-xs font-bold text-slate-500">{u.email}</td>
+                  <tr key={u.id} className={`hover:bg-slate-50/50 transition-colors ${u.isBlocked ? 'bg-red-50/30' : ''}`}>
+                    <td className="p-4"><div className="flex items-center gap-3"><div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center font-black text-xs text-indigo-600 shadow-inner">{u.photoUrl ? <img src={u.photoUrl} className="w-full h-full object-cover rounded-lg" /> : u.name.charAt(0)}</div><span className="font-bold text-sm text-slate-700">{u.name}</span></div></td>
+                    <td className="p-4 text-xs font-black text-slate-400">{u.username}</td>
                     <td className="p-4">
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-mono font-black bg-slate-100 px-2 py-1 rounded-lg text-slate-600">{visiblePass[u.id] ? (u.password || 'No Pass') : '••••••••'}</span>
-                        <button onClick={() => setVisiblePass(p => ({ ...p, [u.id]: !p[u.id] }))} className="text-slate-400 hover:text-indigo-600">{visiblePass[u.id] ? <EyeOff size={14} /> : <Eye size={14} />}</button>
+                        <span className="text-[11px] font-mono font-black bg-slate-100 px-2 py-1 rounded-lg text-slate-600 shadow-inner">{visiblePass[u.id] ? (u.password || 'No Pass') : '••••••••'}</span>
+                        <button onClick={() => setVisiblePass(p => ({ ...p, [u.id]: !p[u.id] }))} className="text-slate-300 hover:text-indigo-600 transition-colors">{visiblePass[u.id] ? <EyeOff size={14} /> : <Eye size={14} />}</button>
                       </div>
                     </td>
                     <td className="p-4 text-indigo-600 font-black">{u.points}</td>
                     <td className="p-4">
                       <div className="flex gap-2">
-                        <button onClick={() => setAllUsers(prev => prev.map(item => item.id === u.id ? { ...item, isBlocked: !item.isBlocked } : item))} className={`p-2 rounded-lg border transition-all ${u.isBlocked ? 'bg-red-600 text-white' : 'text-slate-400 border-slate-100 hover:text-red-500'}`}>{u.isBlocked ? <ShieldOff size={16} /> : <ShieldAlert size={16} />}</button>
-                        <button onClick={() => confirm('ডিলিট?') && setAllUsers(prev => prev.filter(item => item.id !== u.id))} className="p-2 text-slate-400 border border-slate-100 rounded-lg hover:text-red-600"><UserX size={16} /></button>
+                        <button 
+                          onClick={() => handleResetPassword(u.id)}
+                          className="p-2 bg-white text-slate-400 border border-slate-100 rounded-lg hover:text-indigo-600 hover:border-indigo-100 shadow-sm transition-all"
+                          title="পাসওয়ার্ড রিসেট করুন"
+                        >
+                          <Key size={16} />
+                        </button>
+                        <button onClick={() => setAllUsers(prev => prev.map(item => item.id === u.id ? { ...item, isBlocked: !item.isBlocked } : item))} className={`p-2 rounded-lg border transition-all ${u.isBlocked ? 'bg-red-600 text-white border-red-700 shadow-md' : 'text-slate-400 border-slate-100 hover:text-red-500 hover:border-red-100 shadow-sm'}`}>{u.isBlocked ? <ShieldOff size={16} /> : <ShieldAlert size={16} />}</button>
+                        <button onClick={() => confirm('ইউজারটিকে কি ডিলিট করতে চান?') && setAllUsers(prev => prev.filter(item => item.id !== u.id))} className="p-2 text-slate-300 border border-slate-100 rounded-lg hover:text-red-600 hover:border-red-100 transition-all shadow-sm"><UserX size={16} /></button>
                       </div>
                     </td>
                   </tr>
@@ -658,35 +690,40 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
         )}
 
         {activeTab === 'notice' && (
-          <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6">
-            <textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-6 outline-none font-bold" placeholder="নোটিশ..." value={noticeInput} onChange={e => setNoticeInput(e.target.value)} disabled={notices.length >= 3} />
-            <button onClick={handleAddNotice} disabled={notices.length >= 3 || !noticeInput.trim()} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black shadow-lg">যোগ করো ({notices.length}/3)</button>
-            <div className="space-y-3">{notices.map(n => (<div key={n.id} className="p-4 bg-slate-50 rounded-2xl border flex justify-between items-center"><p className="font-bold text-sm">{n.text}</p><button onClick={() => setNotices(prev => prev.filter(item => item.id !== n.id))} className="text-red-500 p-2 hover:bg-red-50 rounded-lg"><Trash2 size={18} /></button></div>))}</div>
+          <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6 animate-in slide-up">
+            <div className="space-y-1"><label className="text-[11px] font-black text-slate-400 uppercase ml-4">নতুন নোটিশ ({notices.length}/3)</label><textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none font-bold shadow-inner min-h-[120px]" placeholder="নোটিশের লেখাটি লিখুন..." value={noticeInput} onChange={e => setNoticeInput(e.target.value)} disabled={notices.length >= 3} /></div>
+            <button onClick={handleAddNotice} disabled={notices.length >= 3 || !noticeInput.trim()} className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black shadow-xl hover:bg-indigo-700 transition-colors disabled:opacity-50">যোগ করো</button>
+            <div className="space-y-3">{notices.map((n, i) => (<div key={n.id} className="p-5 bg-slate-50 rounded-2xl border flex justify-between items-center shadow-sm animate-in slide-up"><div className="flex gap-4 items-center"><span className="w-6 h-6 bg-white rounded-full flex items-center justify-center font-black text-xs text-indigo-600 border shadow-inner">{i+1}</span><p className="font-bold text-slate-700 text-sm">{n.text}</p></div><button onClick={() => setNotices(prev => prev.filter(item => item.id !== n.id))} className="text-red-400 p-2 hover:bg-red-50 rounded-xl transition-colors"><Trash2 size={18} /></button></div>))}</div>
           </div>
         )}
 
         {activeTab === 'banner' && (
-          <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6">
-             <div className="flex gap-4 items-center">
-                <select className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-xl p-4 font-black text-sm" value={homeBannerSize} onChange={e => setHomeBannerSize(e.target.value)}>{BANNER_SIZES.map(s => <option key={s} value={s}>{s}</option>)}</select>
-                <button onClick={() => bannerRef.current?.click()} className="bg-indigo-600 text-white px-8 py-4 rounded-xl font-black shadow-lg uppercase tracking-tighter text-xs">Upload Banner</button>
+          <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-8 animate-in slide-up">
+             <div className="flex flex-col sm:flex-row gap-4 items-end sm:items-center">
+                <div className="flex-1 w-full space-y-1"><label className="text-[11px] font-black text-slate-400 uppercase ml-4">ব্যানার সাইজ</label><select className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-black text-sm outline-none shadow-inner" value={homeBannerSize} onChange={e => setHomeBannerSize(e.target.value)}>{BANNER_SIZES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
+                <button onClick={() => bannerRef.current?.click()} className="w-full sm:w-auto bg-indigo-600 text-white px-8 py-5 rounded-2xl font-black shadow-xl uppercase tracking-widest text-xs hover:bg-indigo-700 transition-all active:scale-95">Upload Banner</button>
              </div>
              <input type="file" ref={bannerRef} className="hidden" accept="image/*" onChange={handleBanner} />
-             {homeBanner && <div className="p-4 bg-slate-50 rounded-2xl flex flex-col items-center gap-4"><img src={homeBanner} className="max-h-32 object-contain rounded-lg border-2 border-white shadow-sm" /><button onClick={() => setHomeBanner(null)} className="text-red-500 font-black text-xs">মুছে ফেলুন</button></div>}
+             {homeBanner && <div className="p-8 bg-slate-50 rounded-3xl border flex flex-col items-center gap-4 animate-in zoom-in shadow-inner"><img src={homeBanner} className="max-h-48 object-contain rounded-2xl border-4 border-white shadow-xl" /><button onClick={() => setHomeBanner(null)} className="text-red-500 font-black text-xs hover:underline flex items-center gap-1 uppercase tracking-tighter"><Trash2 size={14} /> মুছে ফেলুন</button></div>}
           </div>
         )}
 
         {activeTab === 'links' && (
-          <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><input className="bg-slate-50 border-2 border-slate-100 rounded-xl p-4 font-bold" placeholder="শিরোনাম" value={linkT} onChange={e => setLinkT(e.target.value)} /><input className="bg-slate-50 border-2 border-slate-100 rounded-xl p-4 font-bold" placeholder="URL" value={linkU} onChange={e => setLinkU(e.target.value)} /></div>
-            <button onClick={handleAddLink} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black shadow-lg">পোস্ট লিঙ্ক</button>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{studyLinks.map(l => (<div key={l.id} className="p-4 bg-slate-50 rounded-2xl border flex justify-between items-center"><div className="min-w-0"><p className="font-bold truncate">{l.title}</p><p className="text-[10px] text-slate-400 truncate">{l.url}</p></div><button onClick={() => setStudyLinks(prev => prev.filter(item => item.id !== l.id))} className="text-red-500 ml-2"><Trash2 size={18} /></button></div>))}</div>
+          <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6 animate-in slide-up">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-1"><label className="text-[11px] font-black text-slate-400 uppercase ml-4">শিরোনাম</label><input className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-bold outline-none shadow-inner" placeholder="যেমন: ড্রাইভ লিঙ্ক" value={linkT} onChange={e => setLinkT(e.target.value)} /></div>
+              <div className="space-y-1"><label className="text-[11px] font-black text-slate-400 uppercase ml-4">URL</label><input className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-bold outline-none shadow-inner" placeholder="https://..." value={linkU} onChange={e => setLinkU(e.target.value)} /></div>
+            </div>
+            <button onClick={handleAddLink} className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black shadow-xl hover:bg-indigo-700 transition-colors">পোস্ট লিঙ্ক</button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{studyLinks.map(l => (<div key={l.id} className="p-5 bg-slate-50 rounded-2xl border flex justify-between items-center shadow-sm animate-in slide-up"><div className="min-w-0 flex gap-4 items-center"><div className="p-2 bg-white rounded-xl shadow-inner text-indigo-600"><PlusCircle size={18} /></div><div className="min-w-0"><p className="font-bold text-slate-700 truncate text-sm">{l.title}</p><p className="text-[10px] text-slate-400 truncate tracking-tighter uppercase font-black">{l.url}</p></div></div><button onClick={() => setStudyLinks(prev => prev.filter(item => item.id !== l.id))} className="text-red-400 p-2 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={18} /></button></div>))}</div>
           </div>
         )}
 
         {activeTab === 'messages' && (
-          <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-4 max-h-[500px] overflow-y-auto">
-            {helpMessages.map((m: any) => (<div key={m.id} className={`p-5 rounded-3xl border-2 ${m.isAdmin ? 'bg-slate-50' : 'bg-white border-indigo-100'}`}><div className="flex justify-between text-[10px] font-black uppercase text-indigo-600 mb-1"><span>{m.userName}</span><span>{new Date(m.timestamp).toLocaleString()}</span></div><p className="font-bold text-slate-700 text-sm">{m.text}</p>{!m.isAdmin && <button onClick={() => { const r = prompt(`${m.userName}-কে রিপ্লাই:`); if (r) setHelpMessages([...helpMessages, { id: Date.now().toString(), userId: m.userId, userName: adminProfile.name, text: r, timestamp: Date.now(), isAdmin: true }]); }} className="mt-3 text-[10px] font-black bg-indigo-600 text-white px-4 py-2 rounded-lg">REPLY</button>}</div>))}
+          <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar animate-in slide-up">
+            <h3 className="text-xl font-black text-slate-800 mb-4 px-2">সাপোর্ট ইনবক্স</h3>
+            {helpMessages.map((m: any) => (<div key={m.id} className={`p-6 rounded-[32px] border-2 animate-in slide-up ${m.isAdmin ? 'bg-slate-50 border-slate-100' : 'bg-white border-indigo-100 shadow-sm'}`}><div className="flex justify-between text-[10px] font-black uppercase text-indigo-600 mb-2 tracking-widest"><span>{m.userName}</span><span>{new Date(m.timestamp).toLocaleString()}</span></div><p className="font-bold text-slate-700 text-sm leading-relaxed">{m.text}</p>{!m.isAdmin && <button onClick={() => { const r = prompt(`${m.userName}-কে রিপ্লাই:`); if (r) setHelpMessages([...helpMessages, { id: Date.now().toString(), userId: m.userId, userName: adminProfile.name, text: r, timestamp: Date.now(), isAdmin: true }]); }} className="mt-4 text-[10px] font-black bg-indigo-600 text-white px-5 py-2 rounded-xl shadow-lg hover:bg-indigo-700 transition-all active:scale-95 uppercase tracking-widest">REPLY</button>}</div>))}
+            {helpMessages.length === 0 && <div className="text-center py-20 text-slate-300 italic font-bold">কোনো মেসেজ নেই</div>}
           </div>
         )}
       </div>
@@ -694,12 +731,19 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
   }
 
   return (
-    <div className="bg-white p-10 rounded-[48px] shadow-2xl max-w-md mx-auto space-y-8 border animate-in slide-up">
-      <div className="text-center space-y-4"><div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto text-indigo-600"><ShieldCheck size={40} /></div><h2 className="text-3xl font-black text-slate-800">অ্যাডমিন প্রবেশ</h2></div>
-      <div className="space-y-4">
-        <div className="space-y-1"><label className="text-[11px] font-black text-slate-400 uppercase ml-4">আইডি (Email/Phone)</label><input className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold" value={id} onChange={e => setId(e.target.value)} /></div>
-        <div className="space-y-1"><label className="text-[11px] font-black text-slate-400 uppercase ml-4">পাসওয়ার্ড</label><input type="password" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold" value={pass} onChange={e => setPass(e.target.value)} /></div>
-        {error && <p className="text-xs font-bold text-red-500 text-center">{error}</p>}<button onClick={handleLogin} className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-xl shadow-lg active:scale-95 transition-all">লগইন</button>
+    <div className="bg-white p-10 rounded-[48px] shadow-2xl max-w-md mx-auto space-y-8 border animate-in slide-up border-slate-100">
+      <div className="text-center space-y-4">
+        <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto text-indigo-600 shadow-inner"><ShieldCheck size={40} /></div>
+        <h2 className="text-3xl font-black text-slate-800 tracking-tight">অ্যাডমিন প্রবেশ</h2>
+        <div className="bg-amber-50 border border-amber-100 p-3 rounded-2xl flex items-center gap-3 text-amber-700">
+          <Info size={18} className="shrink-0" />
+          <p className="text-xs font-bold leading-tight">অ্যাডমিন রিমন মাহমুদ রোমান শুধু লগইন করতে পারবেন।</p>
+        </div>
+      </div>
+      <div className="space-y-5">
+        <div className="space-y-1"><label className="text-[11px] font-black text-slate-400 uppercase ml-4">আইডি (Email/Phone)</label><input className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold shadow-inner text-slate-700" value={id} onChange={e => setId(e.target.value)} /></div>
+        <div className="space-y-1"><label className="text-[11px] font-black text-slate-400 uppercase ml-4">পাসওয়ার্ড</label><input type="password" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold shadow-inner text-slate-700" value={pass} onChange={e => setPass(e.target.value)} /></div>
+        {error && <p className="text-xs font-bold text-red-500 text-center animate-shake">{error}</p>}<button onClick={handleLogin} className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-xl shadow-xl active:scale-95 transition-all hover:bg-indigo-700 border-b-4 border-indigo-900 active:border-b-0">লগইন</button>
       </div>
     </div>
   );
@@ -712,14 +756,15 @@ const ProfileView = ({ profile, setProfile, stats, onLogout }: any) => {
   return (
     <div className="space-y-8 animate-in slide-up">
       <div className="bg-white p-10 rounded-[48px] shadow-xl border border-slate-100 flex flex-col items-center space-y-6">
-        <div className="relative"><div className="w-32 h-32 bg-indigo-50 rounded-[40px] overflow-hidden border-4 border-white shadow-xl">{profile.photoUrl ? <img src={profile.photoUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-5xl">🎓</div>}</div><button onClick={() => fileRef.current?.click()} className="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-3 rounded-2xl border-2 border-white"><Camera size={18} /></button><input type="file" ref={fileRef} className="hidden" onChange={handlePhoto} /></div>
-        <div className="text-center space-y-1"><h2 className="text-4xl font-black text-slate-800 tracking-tight">{profile.name}</h2><div className="flex gap-2 justify-center"><span className="bg-indigo-600 text-white px-4 py-1 rounded-xl text-[10px] font-black">{stats.level}</span><span className="bg-yellow-100 text-yellow-700 px-4 py-1 rounded-xl text-[10px] font-black">{profile.points} PTS</span></div></div>
+        <div className="relative"><div className="w-32 h-32 bg-indigo-50 rounded-[40px] overflow-hidden border-4 border-white shadow-xl shadow-indigo-100/50">{profile.photoUrl ? <img src={profile.photoUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-5xl">🎓</div>}</div><button onClick={() => fileRef.current?.click()} className="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-3 rounded-2xl border-2 border-white shadow-lg hover:bg-indigo-700 transition-all"><Camera size={18} /></button><input type="file" ref={fileRef} className="hidden" accept="image/*" onChange={handlePhoto} /></div>
+        <div className="text-center space-y-1"><h2 className="text-4xl font-black text-slate-800 tracking-tight">{profile.name}</h2><div className="flex gap-3 justify-center"><span className="bg-indigo-600 text-white px-5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md">{stats.level}</span><span className="bg-yellow-100 text-yellow-700 px-5 py-1.5 rounded-xl text-[10px] font-black border border-yellow-200 shadow-sm uppercase tracking-widest">{profile.points} PTS</span></div></div>
       </div>
       <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6">
         <div className="space-y-4">
-          <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 ml-4 uppercase">নাম</label><input className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold" value={profile.name} onChange={e => setProfile((p: any) => ({ ...p, name: e.target.value }))} /></div>
-          <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 ml-4 uppercase">BIO</label><textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold min-h-[100px]" value={profile.bio} onChange={e => setProfile((p: any) => ({ ...p, bio: e.target.value }))} /></div>
-          <button onClick={onLogout} className="w-full p-4 bg-red-50 text-red-600 rounded-2xl font-black flex items-center justify-center gap-2"><LogOut size={18} /> লগআউট</button>
+          <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 ml-4 uppercase tracking-tighter">আপনার নাম</label><input className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold outline-none shadow-inner text-slate-700" value={profile.name} onChange={e => setProfile((p: any) => ({ ...p, name: e.target.value }))} /></div>
+          <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 ml-4 uppercase tracking-tighter">ইউজার নেম (অপরিবর্তনীয়)</label><input className="w-full bg-slate-100 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold outline-none text-slate-400 cursor-not-allowed" value={profile.username} readOnly /></div>
+          <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 ml-4 uppercase tracking-tighter">আপনার সম্পর্কে (BIO)</label><textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold min-h-[120px] outline-none shadow-inner text-slate-700" value={profile.bio} onChange={e => setProfile((p: any) => ({ ...p, bio: e.target.value }))} /></div>
+          <button onClick={onLogout} className="w-full p-5 bg-red-50 text-red-600 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-red-100 transition-colors border border-red-100 mt-4"><LogOut size={18} /> লগআউট করুন</button>
         </div>
       </div>
     </div>
@@ -731,17 +776,17 @@ const GoalView = ({ addPoints, updateCount, currentCount, setLoading }: any) => 
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [claimable, setClaimable] = useState(false);
-  const handleCheck = async () => { if (!input.trim()) return; setLoading(true); setFeedback(null); try { const res = await checkDailyGoal(input); if (res?.toUpperCase().includes('SUCCESS')) { setIsSuccess(true); setClaimable(true); setFeedback('সঠিক বাক্য! রিওয়ার্ড গ্রহণ করুন।'); } else setFeedback(res || 'ভুল!'); } catch (e) { setFeedback('ভুল হয়েছে।'); } finally { setLoading(false); } };
-  const claim = () => { addPoints(10); updateCount(); setClaimable(false); setIsSuccess(false); setFeedback('১০ পয়েন্ট জয়ী!'); setInput(''); };
+  const handleCheck = async () => { if (!input.trim()) return; setLoading(true); setFeedback(null); try { const res = await checkDailyGoal(input); if (res?.toUpperCase().includes('SUCCESS')) { setIsSuccess(true); setClaimable(true); setFeedback('চমৎকার! সঠিক বাক্য। রিওয়ার্ড গ্রহণ করুন।'); } else setFeedback(res || 'ভুল বাক্য!'); } catch (e) { setFeedback('ভুল হয়েছে।'); } finally { setLoading(false); } };
+  const claim = () => { addPoints(10); updateCount(); setClaimable(false); setIsSuccess(false); setFeedback('অভিনন্দন! ১০ পয়েন্ট জয়ী!'); setInput(''); };
   return (
     <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-8 animate-in slide-up">
-      <div className="flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-4 bg-yellow-50 rounded-3xl text-yellow-600 border border-yellow-100"><Star size={32} fill="currentColor" /></div><h2 className="text-2xl font-black text-slate-800">আজকের লক্ষ্য</h2></div><div className="bg-indigo-50 px-6 py-3 rounded-2xl"><span className="text-3xl font-black text-indigo-600">{currentCount}</span><span className="text-indigo-300 font-bold ml-1">/ 3</span></div></div>
-      {currentCount >= 3 ? <div className="p-12 bg-green-50 rounded-[40px] text-center font-black text-green-800 text-xl">🎉 সব লক্ষ্য পূর্ণ!</div> : (
+      <div className="flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-4 bg-yellow-50 rounded-3xl text-yellow-600 border border-yellow-100 shadow-inner"><Star size={32} fill="currentColor" /></div><h2 className="text-2xl font-black text-slate-800 tracking-tight">আজকের লক্ষ্য</h2></div><div className="bg-indigo-50 px-6 py-3 rounded-2xl shadow-inner border border-indigo-100"><span className="text-3xl font-black text-indigo-600">{currentCount}</span><span className="text-indigo-300 font-bold ml-1">/ 3</span></div></div>
+      {currentCount >= 3 ? <div className="p-16 bg-green-50 rounded-[48px] text-center font-black text-green-800 text-2xl border-4 border-dashed border-green-200 animate-in zoom-in">🎉 সব লক্ষ্য পূর্ণ হয়েছে!</div> : (
         <div className="space-y-6">
-          <div className="flex flex-col gap-2"><div className="flex justify-between items-center px-4"><label className="text-[11px] font-black text-slate-400">ENG SENTENCE</label><STTButton onResult={setInput} lang="en-US" /></div><textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-[32px] p-8 outline-none font-bold text-lg" placeholder="I am learning English." value={input} onChange={e => setInput(e.target.value)} /></div>
-          <button onClick={handleCheck} disabled={!input.trim() || claimable} className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-xl shadow-xl">চেক করো</button>
-          {feedback && <div className={`p-8 rounded-[32px] border-2 font-bold text-sm ${isSuccess ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>{feedback}</div>}
-          {claimable && <button onClick={claim} className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white py-6 rounded-3xl font-black text-xl shadow-2xl animate-bounce-short">পুরস্কার গ্রহণ করো (+১০)</button>}
+          <div className="flex flex-col gap-3"><div className="flex justify-between items-center px-4"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">ইংরেজি বাক্য লিখুন</label><STTButton onResult={setInput} lang="en-US" /></div><textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-[32px] p-8 outline-none font-bold text-lg shadow-inner text-slate-700 min-h-[160px]" placeholder="যেমন: I love studying with StudyBuddy." value={input} onChange={e => setInput(e.target.value)} /></div>
+          <button onClick={handleCheck} disabled={!input.trim() || claimable} className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-xl shadow-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 border-b-4 border-indigo-900 active:border-b-0 active:translate-y-1">চেক করো</button>
+          {feedback && <div className={`p-8 rounded-[32px] border-2 font-bold text-sm animate-in zoom-in leading-relaxed ${isSuccess ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>{feedback}</div>}
+          {claimable && <button onClick={claim} className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white py-7 rounded-3xl font-black text-xl shadow-2xl animate-bounce-short uppercase tracking-widest border-b-8 border-orange-700">পুরস্কার গ্রহণ করো (+১০)</button>}
         </div>
       )}
     </div>

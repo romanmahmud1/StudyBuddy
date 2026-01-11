@@ -1,7 +1,7 @@
 
 export interface UserProfile {
   id: string;
-  email: string;
+  username: string;
   password?: string;
   name: string;
   bio: string;
@@ -34,6 +34,12 @@ export interface StudyLink {
   title: string;
   url: string;
   date: string;
+}
+
+export interface UserNotice {
+  id: string;
+  text: string;
+  timestamp: number;
 }
 
 export interface Notice {
