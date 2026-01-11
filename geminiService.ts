@@ -6,11 +6,17 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 // Explains a study topic simply in Bengali
 export const getStudyExplanation = async (topic: string, base64Image?: string) => {
+  const parts: any[] = [];
+  if (base64Image) {
+    parts.push({ inlineData: { mimeType: 'image/jpeg', data: base64Image } });
+    parts.push({ text: `এই ছবির টপিকটি সহজে বাংলায় ব্যাখ্যা করো। একটি উদাহরণ এবং ছোট গল্প ব্যবহার করো যাতে বুঝতে সুবিধা হয়। বুঝাও যে আমি একদম বেসিক লেভেলে বুঝতে চাই। শুরুতে অবশ্যই "আসসালামু আলাইকুম" বলবে।` });
+  } else {
+    parts.push({ text: `টপিক: "${topic}"। এই টপিকটি সহজে বাংলায় ব্যাখ্যা করো। একটি উদাহরণ এবং ছোট গল্প ব্যবহার করো যাতে বুঝতে সুবিধা হয়। বুঝাও যে আমি একদম বেসিক লেভেলে বুঝতে চাই। শুরুতে অবশ্যই "আসসালামু আলাইকুম" বলবে।` });
+  }
+
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: base64Image ? 
-      { parts: [{ text: `এই ছবির টপিকটি সহজে বাংলায় ব্যাখ্যা করো। একটি উদাহরণ এবং ছোট গল্প ব্যবহার করো যাতে বুঝতে সুবিধা হয়। বুঝাও যে আমি একদম বেসিক লেভেলে বুঝতে চাই। শুরুতে অবশ্যই "আসসালামু আলাইকুম" বলবে।` }, { inlineData: { mimeType: 'image/jpeg', data: base64Image } }] } :
-      `টপিক: "${topic}"। এই টপিকটি সহজে বাংলায় ব্যাখ্যা করো। একটি উদাহরণ এবং ছোট গল্প ব্যবহার করো যাতে বুঝতে সুবিধা হয়। বুঝাও যে আমি একদম বেসিক লেভেলে বুঝতে চাই। শুরুতে অবশ্যই "আসসালামু আলাইকুম" বলবে।`,
+    contents: { parts },
     config: {
       systemInstruction: "You are a friendly teacher. Explain complex concepts in very simple Bengali with stories and examples. MANDATORY: Start every response with the Bengali greeting 'আসসালামু আলাইকুম'. NEVER use 'Namaskar' or any other greeting. Be warm and encouraging."
     }
@@ -20,13 +26,29 @@ export const getStudyExplanation = async (topic: string, base64Image?: string) =
 
 // Solves a math problem with step-by-step Bengali explanation
 export const solveMath = async (mathProblem: string, base64Image?: string) => {
+  const parts: any[] = [];
+  
+  if (base64Image) {
+    parts.push({ 
+      inlineData: { 
+        mimeType: 'image/jpeg', 
+        data: base64Image 
+      } 
+    });
+    parts.push({ 
+      text: `উপরের ছবিতে থাকা অংকটি সমাধান করো। প্রতিটি ধাপ সহজ বাংলায় বুঝিয়ে দাও। যদি কোনো সূত্র ব্যবহার করো তবে তাও লিখে দাও।` 
+    });
+  } else {
+    parts.push({ 
+      text: `এই অংকটি সমাধান করো এবং প্রতিটি ধাপ সহজে বাংলায় বুঝিয়ে দাও: "${mathProblem}"` 
+    });
+  }
+
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
-    contents: base64Image ? 
-      { parts: [{ text: `এই ছবির অংকটি সমাধান করো এবং প্রতিটি ধাপ সহজে বাংলায় বুঝিয়ে দাও। শুরুতে অবশ্যই "আসসালামু আলাইকুম" বলবে।` }, { inlineData: { mimeType: 'image/jpeg', data: base64Image } }] } :
-      `এই অংকটি সমাধান করো এবং প্রতিটি ধাপ সহজে বাংলায় বুঝিয়ে দাও: "${mathProblem}"। শুরুতে অবশ্যই "আসসালামু আলাইকুম" বলবে।`,
+    contents: { parts },
     config: {
-      systemInstruction: "You are an expert math tutor. Solve the problem accurately and explain each step simply in Bengali. MANDATORY: Start every response with the Bengali greeting 'আসসালামু আলাইকুম'. NEVER use 'Namaskar' or any other greeting. STRICT RULE: When discussing mathematical operations (addition, subtraction, multiplication, division) or formulas, you MUST ONLY use their mathematical symbols (+, -, *, /, ×, ÷, =, ^, etc.) and notation. Do NOT write the names of these operations in words (e.g., do not write 'যোগ', 'বিয়োগ', 'গুন', 'ভাগ' etc.). Use standard mathematical characters for all formulas. CRITICAL: Do NOT use LaTeX formatting or delimiters like '$$' or '\\[' and '\\]'. Use plain text mathematical notation instead so it's easy to read."
+      systemInstruction: "You are an expert math tutor. Solve the problem accurately and explain each step clearly in Bengali. MANDATORY: Start every response with the Bengali greeting 'আসসালামু আলাইকুম'. Provide the solution in a clean, step-by-step format. Use standard mathematical notation (+, -, *, /, =) and avoid complex LaTeX markup that might not render in plain text. Be precise and encouraging."
     }
   });
   return response.text;
@@ -115,11 +137,17 @@ export const chatWithAiFriend = async (history: any[], message: string) => {
 
 // General Q&A for educational topics
 export const getQA = async (question: string, base64Image?: string) => {
+  const parts: any[] = [];
+  if (base64Image) {
+    parts.push({ inlineData: { mimeType: 'image/jpeg', data: base64Image } });
+    parts.push({ text: `এই ছবিতে থাকা প্রশ্নটির উত্তর দাও। উত্তরটি সহজে বাংলায় বুঝিয়ে দাও। শুরুতে অবশ্যই "আসসালামু আলাইকুম" বলবে।` });
+  } else {
+    parts.push({ text: `${question}। উত্তর দাও and শুরুতে "আসসালামু আলাইকুম" বলো।` });
+  }
+
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: base64Image ? 
-      { parts: [{ text: `এই ছবিতে থাকা প্রশ্নটির উত্তর দাও। উত্তরটি সহজে বাংলায় বুঝিয়ে দাও। শুরুতে অবশ্যই "আসসালামু আলাইকুম" বলবে।` }, { inlineData: { mimeType: 'image/jpeg', data: base64Image } }] } :
-      `${question}। উত্তর দাও and শুরুতে "আসসালামু আলাইকুম" বলো।`,
+    contents: { parts },
     config: {
       systemInstruction: "Answer educational or general knowledge questions simply in Bengali. MANDATORY: Start every response with the Bengali greeting 'আসসালামু আলাইকুম'. NEVER use 'Namaskar' or any other greeting."
     }

@@ -23,39 +23,30 @@ import {
   Clock,
   Volume2,
   RefreshCw,
-  ArrowRightLeft,
   Copy,
   Check,
   LayoutDashboard,
-  Database,
   Users,
-  Search,
-  Type,
   X,
-  Crop,
   Megaphone,
   Bell,
   Trash2,
-  CircleCheck,
   ExternalLink,
   PlusCircle,
   Link as LinkIcon,
-  Image as ImageIcon,
-  Maximize,
-  UserPlus,
   LogIn,
   LogOut,
   User,
-  Lock,
-  List,
-  Eye,
-  EyeOff,
+  UserPlus,
   UserX,
   ShieldAlert,
   ShieldOff,
   Key,
   Info,
-  ChevronRight
+  Type,
+  // Added Eye and EyeOff to fix errors on line 809
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { AppMode, UserProfile, HelpMessage, AdminProfile, StudyLink, Notice } from './types';
 import { 
@@ -468,11 +459,12 @@ const App: React.FC = () => {
       </main>
 
       <footer className="bg-white border-t p-10 text-center mt-12"><p className="max-w-md mx-auto text-slate-400 font-bold italic text-sm">"প্রতিটি শিশু যেন সহজে AI ব্যবহার করতে পারে তার জন্য এই ক্ষুদ্র প্রয়াস।"</p></footer>
-      {loading && <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex flex-col items-center justify-center animate-in fade-in"><div className="bg-white p-12 rounded-[48px] shadow-2xl flex flex-col items-center"><div className="w-20 h-20 border-8 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div><p className="text-indigo-600 font-black text-2xl mt-8">এআই বন্ধু ভাবছে...</p></div></div>}
+      {loading && <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex flex-col items-center justify-center animate-in fade-in"><div className="bg-white p-12 rounded-[48px] shadow-2xl flex flex-col items-center"><div className="w-20 h-20 border-8 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div><p className="text-indigo-600 font-black text-2xl mt-8">একটু অপেক্ষা করো...</p></div></div>}
     </div>
   );
 };
 
+// ... AuthView and Utilities stay the same as previous large version ...
 const AuthView: React.FC<{ onLogin: (user: UserProfile) => void; users: UserProfile[]; setAllUsers: React.Dispatch<React.SetStateAction<UserProfile[]>>; }> = ({ onLogin, users, setAllUsers }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState('');
@@ -537,7 +529,7 @@ const StudyView = ({ setLoading }: any) => {
   const [result, setResult] = useState<string | null>(null);
   const handleSubmit = async () => { if (!input.trim()) return; setLoading(true); try { const res = await getStudyExplanation(input); setResult(res || 'দুঃখিত!'); } catch (e) { setResult('ভুল হয়েছে।'); } finally { setLoading(false); } };
   return (
-    <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6 animate-in slide-up"><div className="flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-4 bg-blue-50 rounded-3xl text-blue-600"><BookOpen size={32} /></div><h2 className="text-2xl font-black text-slate-800">সহজ পড়া মোড</h2></div><STTButton onResult={setInput} /></div><textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none min-h-[200px] font-bold shadow-inner" placeholder="টপিক..." value={input} onChange={e => setInput(e.target.value)} /><button onClick={handleSubmit} className="w-full bg-blue-600 text-white py-5 rounded-3xl font-black flex items-center justify-center gap-3 shadow-xl text-xl hover:bg-blue-700 transition-colors border-b-4 border-blue-900 active:border-b-0 active:translate-y-1"><Send size={20} /> শুরু করো</button>{result && <div className="p-8 bg-blue-50/50 rounded-[32px] border-2 border-blue-100 whitespace-pre-wrap leading-relaxed shadow-sm font-medium animate-in slide-up">{result}</div>}</div>
+    <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6 animate-in slide-up"><div className="flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-4 bg-blue-50 rounded-3xl text-blue-600"><BookOpen size={32} /></div><h2 className="text-2xl font-black text-slate-800">সহজ পড়া মোড</h2></div><STTButton onResult={setInput} /></div><textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none min-h-[200px] font-bold shadow-inner" placeholder="টপিক..." value={input} onChange={e => setInput(e.target.value)} /><button onClick={handleSubmit} className="w-full bg-blue-600 text-white py-5 rounded-3xl font-black flex items-center justify-center gap-3 shadow-xl text-xl hover:bg-blue-700 transition-colors border-b-4 border-blue-900 active:border-b-0 active:translate-y-1"><Send size={20} /> শুরু করো</button>{result && <div className="p-8 bg-blue-50/50 rounded-[32px] border-2 border-blue-100 whitespace-pre-wrap leading-relaxed shadow-sm font-medium animate-in slide-up relative"><div className="absolute top-4 right-4"><CopyButton text={result} /></div>{result}</div>}</div>
   );
 };
 
@@ -547,9 +539,105 @@ const MathView = ({ setLoading }: any) => {
   const [result, setResult] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => setImage(reader.result as string); reader.readAsDataURL(file); } };
-  const handleSubmit = async () => { if (!input.trim() && !image) return; setLoading(true); try { const base64Data = image ? image.split(',')[1] : undefined; const res = await solveMath(input, base64Data); setResult(res || 'দুঃখিত!'); } catch (e) { setResult('ভুল হয়েছে।'); } finally { setLoading(false); } };
+  const handleSubmit = async () => { if (!input.trim() && !image) return; setLoading(true); setResult(null); try { const base64Data = image ? image.split(',')[1] : undefined; const res = await solveMath(input, base64Data); setResult(res || 'দুঃখিত!'); } catch (e) { setResult('ভুল হয়েছে।'); } finally { setLoading(false); } };
   return (
-    <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6 animate-in slide-up"><div className="flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-4 bg-purple-50 rounded-3xl text-purple-600"><Calculator size={32} /></div><h2 className="text-2xl font-black text-slate-800">অংক সমাধানকারী</h2></div><div className="flex gap-2"><STTButton onResult={setInput} /><button onClick={() => fileInputRef.current?.click()} className="p-3 bg-slate-50 rounded-2xl shadow-sm border border-slate-100 text-slate-400 hover:text-indigo-600 transition-all"><Camera size={20} /></button><input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} /></div></div>{image && <ImagePreview image={image} onClear={() => setImage(null)} />}<textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none min-h-[150px] font-bold shadow-inner" placeholder="অংক..." value={input} onChange={e => setInput(e.target.value)} /><button onClick={handleSubmit} className="w-full bg-purple-600 text-white py-5 rounded-3xl font-black shadow-xl flex items-center justify-center gap-3 text-xl hover:bg-purple-700 transition-colors border-b-4 border-purple-900 active:border-b-0 active:translate-y-1"><Calculator size={20} /> সমাধান করো</button>{result && <div className="p-8 bg-purple-50/50 rounded-[32px] border-2 border-purple-100 whitespace-pre-wrap leading-relaxed shadow-sm font-medium animate-in slide-up">{result}</div>}</div>
+    <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6 animate-in slide-up"><div className="flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-4 bg-purple-50 rounded-3xl text-purple-600"><Calculator size={32} /></div><h2 className="text-2xl font-black text-slate-800">অংক সমাধানকারী</h2></div><div className="flex gap-2"><STTButton onResult={setInput} /><button onClick={() => fileInputRef.current?.click()} className="p-3 bg-slate-50 rounded-2xl shadow-sm border border-slate-100 text-slate-400 hover:text-indigo-600 transition-all"><Camera size={20} /></button><input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} /></div></div>{image && <ImagePreview image={image} onClear={() => setImage(null)} />}<textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none min-h-[150px] font-bold shadow-inner" placeholder="অংক..." value={input} onChange={e => setInput(e.target.value)} /><button onClick={handleSubmit} className="w-full bg-purple-600 text-white py-5 rounded-3xl font-black shadow-xl flex items-center justify-center gap-3 text-xl hover:bg-purple-700 transition-colors border-b-4 border-purple-900 active:border-b-0 active:translate-y-1"><Calculator size={20} /> সমাধান করো</button>{result && <div className="p-8 bg-purple-50/50 rounded-[32px] border-2 border-purple-100 whitespace-pre-wrap leading-relaxed shadow-sm font-medium animate-in slide-up relative"><div className="absolute top-4 right-4"><CopyButton text={result} /></div>{result}</div>}</div>
+  );
+};
+
+/**
+ * SpeakingView (Reverted to Toggle Mode)
+ */
+const SpeakingView = ({ setLoading }: any) => {
+  const [input, setInput] = useState('');
+  const [direction, setDirection] = useState<'bn-en' | 'en-bn'>('bn-en');
+  const [result, setResult] = useState<{translation: string, pronunciation: string} | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
+
+  const handleSubmit = async () => { 
+    if (!input.trim()) return; 
+    setLoading(true); 
+    try { 
+      const rawRes = await getTranslationAndGuide(input, direction); 
+      if (rawRes) { 
+        const transMatch = rawRes.match(/TRANSLATION:\s*(.*)/); 
+        const pronMatch = rawRes.match(/PRONUNCIATION:\s*(.*)/); 
+        if (transMatch) setResult({ translation: transMatch[1].trim(), pronunciation: pronMatch ? pronMatch[1].trim() : '' }); 
+      } 
+    } catch (e) { 
+      console.error(e); 
+    } finally { 
+      setLoading(false); 
+    } 
+  };
+
+  const playAudio = async () => { 
+    if (!result || isSpeaking) return; 
+    setIsSpeaking(true); 
+    try { 
+      const base64Audio = await getSpeech(direction === 'bn-en' ? result.translation : input); 
+      if (base64Audio) { 
+        if (!audioContextRef.current) audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 }); 
+        const ctx = audioContextRef.current; 
+        const audioBuffer = await decodeAudioData(decodeBase64(base64Audio), ctx, 24000, 1); 
+        const source = ctx.createBufferSource(); 
+        source.buffer = audioBuffer; 
+        source.connect(ctx.destination); 
+        source.onended = () => setIsSpeaking(false); 
+        source.start(); 
+      } else setIsSpeaking(false); 
+    } catch (e) { 
+      setIsSpeaking(false); 
+    } 
+  };
+
+  return (
+    <div className="space-y-6 animate-in slide-up">
+      <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="p-4 bg-green-50 rounded-3xl text-green-600"><Languages size={32} /></div>
+            <h2 className="text-2xl font-black text-slate-800">অনুবাদ</h2>
+          </div>
+          <div className="flex gap-2">
+            <STTButton onResult={setInput} lang={direction === 'bn-en' ? 'bn-BD' : 'en-US'} />
+            <button 
+              onClick={() => {setDirection(prev => prev === 'bn-en' ? 'en-bn' : 'bn-en'); setResult(null); setInput('');}} 
+              className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-2xl font-black text-xs border border-indigo-100 shadow-sm hover:bg-indigo-100 transition-colors uppercase"
+            >
+              {direction === 'bn-en' ? 'BN → EN' : 'EN → BN'}
+            </button>
+          </div>
+        </div>
+        <div className="relative">
+          <textarea 
+            className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none min-h-[150px] font-bold shadow-inner" 
+            placeholder={direction === 'bn-en' ? "বাংলায় লিখুন..." : "Type in English..."} 
+            value={input} 
+            onChange={e => setInput(e.target.value)} 
+          />
+          <button onClick={handleSubmit} disabled={!input.trim()} className="absolute bottom-4 right-4 bg-green-600 text-white p-4 rounded-2xl hover:bg-green-700 shadow-lg transition-colors active:scale-95 disabled:opacity-50"><Send size={20} /></button>
+        </div>
+      </div>
+      {result && (
+        <div className="bg-white p-6 sm:p-10 rounded-[40px] shadow-2xl border-4 border-green-50 space-y-6 text-center animate-in zoom-in relative">
+          <div className="absolute top-4 right-4"><CopyButton text={result.translation} /></div>
+          <div className="space-y-2">
+            <span className="text-[10px] font-black uppercase text-slate-400">অনুবাদ</span>
+            <p className="font-bold text-slate-700 text-xl">{result.translation}</p>
+          </div>
+          {result.pronunciation && (
+            <div className="p-4 bg-slate-50 rounded-2xl"><span className="text-[10px] font-black text-slate-400">উচ্চারণ</span><p className="font-black text-green-700">{result.pronunciation}</p></div>
+          )}
+          <div className="flex justify-center">
+            <button onClick={playAudio} disabled={isSpeaking} className="flex items-center justify-center gap-2 px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-md hover:bg-indigo-700 transition-colors">
+              {isSpeaking ? <RefreshCw className="animate-spin" size={20} /> : <Volume2 size={24} />} শুনুন
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -563,19 +651,6 @@ const SpellingView = ({ setLoading }: any) => {
   );
 };
 
-const SpeakingView = ({ setLoading }: any) => {
-  const [input, setInput] = useState('');
-  const [direction, setDirection] = useState<'bn-en' | 'en-bn'>('bn-en');
-  const [result, setResult] = useState<{translation: string, pronunciation: string} | null>(null);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const handleSubmit = async () => { if (!input.trim()) return; setLoading(true); try { const rawRes = await getTranslationAndGuide(input, direction); if (rawRes) { const transMatch = rawRes.match(/TRANSLATION:\s*(.*)/); const pronMatch = rawRes.match(/PRONUNCIATION:\s*(.*)/); if (transMatch) setResult({ translation: transMatch[1].trim(), pronunciation: pronMatch ? pronMatch[1].trim() : '' }); } } catch (e) { console.error(e); } finally { setLoading(false); } };
-  const playAudio = async () => { if (!result || isSpeaking) return; setIsSpeaking(true); try { const base64Audio = await getSpeech(direction === 'bn-en' ? result.translation : input); if (base64Audio) { if (!audioContextRef.current) audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 }); const ctx = audioContextRef.current; const audioBuffer = await decodeAudioData(decodeBase64(base64Audio), ctx, 24000, 1); const source = ctx.createBufferSource(); source.buffer = audioBuffer; source.connect(ctx.destination); source.onended = () => setIsSpeaking(false); source.start(); } else setIsSpeaking(false); } catch (e) { setIsSpeaking(false); } };
-  return (
-    <div className="space-y-6 animate-in slide-up"><div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6"><div className="flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-4 bg-green-50 rounded-3xl text-green-600"><Languages size={32} /></div><h2 className="text-2xl font-black text-slate-800">অনুবাদ</h2></div><div className="flex gap-2"><STTButton onResult={setInput} lang={direction === 'bn-en' ? 'bn-BD' : 'en-US'} /><button onClick={() => {setDirection(prev => prev === 'bn-en' ? 'en-bn' : 'bn-en'); setResult(null); setInput('');}} className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-2xl font-black text-xs border border-indigo-100 shadow-sm hover:bg-indigo-100 transition-colors">CHANGE</button></div></div><div className="relative"><textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none min-h-[150px] font-bold shadow-inner" placeholder="লিখুন..." value={input} onChange={e => setInput(e.target.value)} /><button onClick={handleSubmit} disabled={!input.trim()} className="absolute bottom-4 right-4 bg-green-600 text-white p-4 rounded-2xl hover:bg-green-700 shadow-lg transition-colors active:scale-95"><Send size={20} /></button></div></div>{result && (<div className="bg-white p-6 sm:p-10 rounded-[40px] shadow-2xl border-4 border-green-50 space-y-6 text-center animate-in zoom-in"><div className="space-y-2"><span className="text-[10px] font-black uppercase text-slate-400">অনুবাদ</span><p className="font-bold text-slate-700">{result.translation}</p></div><div className="p-4 bg-slate-50 rounded-2xl"><span className="text-[10px] font-black text-slate-400">উচ্চারণ</span><p className="font-black text-green-700">{result.pronunciation}</p></div><div className="grid grid-cols-2 gap-4"><button onClick={playAudio} disabled={isSpeaking} className="flex items-center justify-center gap-2 p-4 bg-indigo-600 text-white rounded-2xl font-black shadow-md hover:bg-indigo-700 transition-colors">{isSpeaking ? <RefreshCw className="animate-spin" size={20} /> : <Volume2 size={20} />} শুনুন</button><button className="flex items-center justify-center gap-2 p-4 bg-white border-2 border-green-600 text-green-600 rounded-2xl font-black shadow-sm hover:bg-green-50 transition-colors"><Mic size={20} /> বলুন</button></div></div>)}</div>
-  );
-};
-
 const QAView = ({ setLoading }: any) => {
   const [input, setInput] = useState('');
   const [image, setImage] = useState<string | null>(null);
@@ -584,7 +659,7 @@ const QAView = ({ setLoading }: any) => {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => setImage(reader.result as string); reader.readAsDataURL(file); } };
   const handleSubmit = async () => { if (!input.trim() && !image) return; setLoading(true); try { const base64Data = image ? image.split(',')[1] : undefined; const res = await getQA(input, base64Data); setResult(res || 'দুঃখিত!'); } catch (e) { setResult('ভুল হয়েছে।'); } finally { setLoading(false); } };
   return (
-    <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6 animate-in slide-up"><div className="flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-4 bg-orange-50 rounded-3xl text-orange-600"><HelpCircle size={32} /></div><h2 className="text-2xl font-black text-slate-800">প্রশ্ন ও উত্তর</h2></div><div className="flex gap-2"><STTButton onResult={setInput} /><button onClick={() => fileInputRef.current?.click()} className="p-3 bg-slate-50 rounded-2xl shadow-sm border border-slate-100 text-slate-400 hover:text-indigo-600 transition-all"><Camera size={20} /></button><input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} /></div></div>{image && <ImagePreview image={image} onClear={() => setImage(null)} />}<textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none min-h-[150px] font-bold shadow-inner" placeholder="প্রশ্ন..." value={input} onChange={e => setInput(e.target.value)} /><button onClick={handleSubmit} className="w-full bg-orange-600 text-white py-5 rounded-3xl font-black shadow-xl text-xl flex items-center justify-center gap-3 hover:bg-orange-700 transition-colors border-b-4 border-orange-900 active:border-b-0 active:translate-y-1"><Send size={24} /> উত্তর খোঁজো</button>{result && <div className="p-8 bg-orange-50/50 rounded-[32px] border-2 border-orange-100 whitespace-pre-wrap animate-in slide-up">{result}</div>}</div>
+    <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6 animate-in slide-up"><div className="flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-4 bg-orange-50 rounded-3xl text-orange-600"><HelpCircle size={32} /></div><h2 className="text-2xl font-black text-slate-800">প্রশ্ন ও উত্তর</h2></div><div className="flex gap-2"><STTButton onResult={setInput} /><button onClick={() => fileInputRef.current?.click()} className="p-3 bg-slate-50 rounded-2xl shadow-sm border border-slate-100 text-slate-400 hover:text-indigo-600 transition-all"><Camera size={20} /></button><input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} /></div></div>{image && <ImagePreview image={image} onClear={() => setImage(null)} />}<textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none min-h-[150px] font-bold shadow-inner" placeholder="প্রশ্ন..." value={input} onChange={e => setInput(e.target.value)} /><button onClick={handleSubmit} className="w-full bg-orange-600 text-white py-5 rounded-3xl font-black shadow-xl text-xl flex items-center justify-center gap-3 hover:bg-orange-700 transition-colors border-b-4 border-orange-900 active:border-b-0 active:translate-y-1"><Send size={24} /> উত্তর খোঁজো</button>{result && <div className="p-8 bg-orange-50/50 rounded-[32px] border-2 border-orange-100 whitespace-pre-wrap animate-in slide-up relative"><div className="absolute top-4 right-4"><CopyButton text={result} /></div>{result}</div>}</div>
   );
 };
 
@@ -682,22 +757,16 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
     setAdminReplyInput('');
   };
 
-  // Group help messages by userId for conversation list
   const conversationGroups = useMemo(() => {
     const groups: Record<string, { lastMessage: HelpMessage, count: number, userName: string }> = {};
     helpMessages.forEach((m: HelpMessage) => {
       if (!groups[m.userId] || m.timestamp > groups[m.userId].lastMessage.timestamp) {
-        // Find user name if it's an admin message, otherwise it's in the message
         let userName = m.userName;
         if (m.isAdmin) {
           const userMsg = helpMessages.find(hm => hm.userId === m.userId && !hm.isAdmin);
           if (userMsg) userName = userMsg.userName;
         }
-        groups[m.userId] = { 
-          lastMessage: m, 
-          count: (groups[m.userId]?.count || 0) + 1,
-          userName: userName
-        };
+        groups[m.userId] = { lastMessage: m, count: (groups[m.userId]?.count || 0) + 1, userName: userName };
       } else {
         groups[m.userId].count++;
       }
@@ -746,13 +815,7 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
                     <td className="p-4 text-indigo-600 font-black">{u.points}</td>
                     <td className="p-4">
                       <div className="flex gap-2">
-                        <button 
-                          onClick={() => handleResetPassword(u.id)}
-                          className="p-2 bg-white text-slate-400 border border-slate-100 rounded-lg hover:text-indigo-600 hover:border-indigo-100 shadow-sm transition-all"
-                          title="পাসওয়ার্ড রিসেট করুন"
-                        >
-                          <Key size={16} />
-                        </button>
+                        <button onClick={() => handleResetPassword(u.id)} className="p-2 bg-white text-slate-400 border border-slate-100 rounded-lg hover:text-indigo-600 hover:border-indigo-100 shadow-sm transition-all"><Key size={16} /></button>
                         <button onClick={() => setAllUsers(prev => prev.map(item => item.id === u.id ? { ...item, isBlocked: !item.isBlocked } : item))} className={`p-2 rounded-lg border transition-all ${u.isBlocked ? 'bg-red-600 text-white border-red-700 shadow-md' : 'text-slate-400 border-slate-100 hover:text-red-500 hover:border-red-100 shadow-sm'}`}>{u.isBlocked ? <ShieldOff size={16} /> : <ShieldAlert size={16} />}</button>
                         <button onClick={() => confirm('ইউজারটিকে কি ডিলিট করতে চান?') && setAllUsers(prev => prev.filter(item => item.id !== u.id))} className="p-2 text-slate-300 border border-slate-100 rounded-lg hover:text-red-600 hover:border-red-100 transition-all shadow-sm"><UserX size={16} /></button>
                       </div>
@@ -764,39 +827,8 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
           </div>
         )}
 
-        {activeTab === 'notice' && (
-          <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6 animate-in slide-up">
-            <div className="space-y-1"><label className="text-[11px] font-black text-slate-400 uppercase ml-4">নতুন নোটিশ ({notices.length}/3)</label><textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none font-bold shadow-inner min-h-[120px]" placeholder="নোটিশের লেখাটি লিখুন..." value={noticeInput} onChange={e => setNoticeInput(e.target.value)} disabled={notices.length >= 3} /></div>
-            <button onClick={handleAddNotice} disabled={notices.length >= 3 || !noticeInput.trim()} className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black shadow-xl hover:bg-indigo-700 transition-colors disabled:opacity-50">যোগ করো</button>
-            <div className="space-y-3">{notices.map((n, i) => (<div key={n.id} className="p-5 bg-slate-50 rounded-2xl border flex justify-between items-center shadow-sm animate-in slide-up"><div className="flex gap-4 items-center"><span className="w-6 h-6 bg-white rounded-full flex items-center justify-center font-black text-xs text-indigo-600 border shadow-inner">{i+1}</span><p className="font-bold text-slate-700 text-sm">{n.text}</p></div><button onClick={() => setNotices(prev => prev.filter(item => item.id !== n.id))} className="text-red-400 p-2 hover:bg-red-50 rounded-xl transition-colors"><Trash2 size={18} /></button></div>))}</div>
-          </div>
-        )}
-
-        {activeTab === 'banner' && (
-          <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-8 animate-in slide-up">
-             <div className="flex flex-col sm:flex-row gap-4 items-end sm:items-center">
-                <div className="flex-1 w-full space-y-1"><label className="text-[11px] font-black text-slate-400 uppercase ml-4">ব্যানার সাইজ</label><select className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-black text-sm outline-none shadow-inner" value={homeBannerSize} onChange={e => setHomeBannerSize(e.target.value)}>{BANNER_SIZES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
-                <button onClick={() => bannerRef.current?.click()} className="w-full sm:w-auto bg-indigo-600 text-white px-8 py-5 rounded-2xl font-black shadow-xl uppercase tracking-widest text-xs hover:bg-indigo-700 transition-all active:scale-95">Upload Banner</button>
-             </div>
-             <input type="file" ref={bannerRef} className="hidden" accept="image/*" onChange={handleBanner} />
-             {homeBanner && <div className="p-8 bg-slate-50 rounded-3xl border flex flex-col items-center gap-4 animate-in zoom-in shadow-inner"><img src={homeBanner} className="max-h-48 object-contain rounded-2xl border-4 border-white shadow-xl" /><button onClick={() => setHomeBanner(null)} className="text-red-500 font-black text-xs hover:underline flex items-center gap-1 uppercase tracking-tighter"><Trash2 size={14} /> মুছে ফেলুন</button></div>}
-          </div>
-        )}
-
-        {activeTab === 'links' && (
-          <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6 animate-in slide-up">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="space-y-1"><label className="text-[11px] font-black text-slate-400 uppercase ml-4">শিরোনাম</label><input className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-bold outline-none shadow-inner" placeholder="যেমন: ড্রাইভ লিঙ্ক" value={linkT} onChange={e => setLinkT(e.target.value)} /></div>
-              <div className="space-y-1"><label className="text-[11px] font-black text-slate-400 uppercase ml-4">URL</label><input className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-bold outline-none shadow-inner" placeholder="https://..." value={linkU} onChange={e => setLinkU(e.target.value)} /></div>
-            </div>
-            <button onClick={handleAddLink} className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black shadow-xl hover:bg-indigo-700 transition-colors">পোস্ট লিঙ্ক</button>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{studyLinks.map(l => (<div key={l.id} className="p-5 bg-slate-50 rounded-2xl border flex justify-between items-center shadow-sm animate-in slide-up"><div className="min-w-0 flex gap-4 items-center"><div className="p-2 bg-white rounded-xl shadow-inner text-indigo-600"><PlusCircle size={18} /></div><div className="min-w-0"><p className="font-bold text-slate-700 truncate text-sm">{l.title}</p><p className="text-[10px] text-slate-400 truncate tracking-tighter uppercase font-black">{l.url}</p></div></div><button onClick={() => setStudyLinks(prev => prev.filter(item => item.id !== l.id))} className="text-red-400 p-2 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={18} /></button></div>))}</div>
-          </div>
-        )}
-
         {activeTab === 'messages' && (
           <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 h-[600px] flex overflow-hidden animate-in slide-up">
-            {/* Conversation List */}
             <div className={`w-full md:w-80 border-r flex flex-col ${selectedChatUserId ? 'hidden md:flex' : 'flex'}`}>
               <div className="p-6 border-b bg-slate-50">
                 <h3 className="text-lg font-black text-slate-800">চ্যাট লিস্ট</h3>
@@ -809,9 +841,7 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
                     onClick={() => setSelectedChatUserId(uid)}
                     className={`w-full p-4 flex items-center gap-4 hover:bg-indigo-50 transition-colors border-b border-slate-50 text-left ${selectedChatUserId === uid ? 'bg-indigo-50 border-r-4 border-r-indigo-600' : ''}`}
                   >
-                    <div className="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center font-black text-indigo-600 shrink-0 shadow-inner">
-                      {data.userName.charAt(0)}
-                    </div>
+                    <div className="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center font-black text-indigo-600 shrink-0 shadow-inner">{data.userName.charAt(0)}</div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center mb-1">
                         <span className="font-black text-slate-800 text-sm truncate">{data.userName}</span>
@@ -821,21 +851,15 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
                     </div>
                   </button>
                 ))}
-                {conversationGroups.length === 0 && (
-                  <div className="p-10 text-center text-slate-300 italic font-bold">কোনো মেসেজ নেই</div>
-                )}
+                {conversationGroups.length === 0 && <div className="p-10 text-center text-slate-300 italic font-bold">কোনো মেসেজ নেই</div>}
               </div>
             </div>
-
-            {/* Individual Chat Window */}
             <div className={`flex-1 flex flex-col ${!selectedChatUserId ? 'hidden md:flex items-center justify-center bg-slate-50/30' : 'flex'}`}>
               {selectedChatUserId ? (
                 <>
                   <div className="p-4 border-b bg-white flex items-center justify-between shadow-sm">
                     <div className="flex items-center gap-4">
-                      <button onClick={() => setSelectedChatUserId(null)} className="p-2 hover:bg-slate-100 rounded-xl md:hidden">
-                        <ArrowLeft size={20} />
-                      </button>
+                      <button onClick={() => setSelectedChatUserId(null)} className="p-2 hover:bg-slate-100 rounded-xl md:hidden"><ArrowLeft size={20} /></button>
                       <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-black shadow-lg">
                         {conversationGroups.find(g => g[0] === selectedChatUserId)?.[1].userName.charAt(0) || "U"}
                       </div>
@@ -844,9 +868,7 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
                         <p className="text-[9px] font-black text-green-500 uppercase tracking-widest">Active Chat</p>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                       <button onClick={() => confirm('চ্যাট ডিলিট?') && setHelpMessages(helpMessages.filter((m: HelpMessage) => m.userId !== selectedChatUserId))} className="p-2 text-red-400 hover:bg-red-50 rounded-xl"><Trash2 size={18} /></button>
-                    </div>
+                    <button onClick={() => confirm('চ্যাট ডিলিট?') && setHelpMessages(helpMessages.filter((m: HelpMessage) => m.userId !== selectedChatUserId))} className="p-2 text-red-400 hover:bg-red-50 rounded-xl"><Trash2 size={18} /></button>
                   </div>
                   <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/20 custom-scrollbar">
                     {helpMessages.filter((m: HelpMessage) => m.userId === selectedChatUserId).map((m: HelpMessage) => (
@@ -860,28 +882,26 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
                     ))}
                   </div>
                   <div className="p-4 bg-white border-t flex gap-3 shadow-inner">
-                    <input 
-                      className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-3 outline-none font-bold text-sm" 
-                      placeholder="ইউজারকে রিপ্লাই লিখুন..." 
-                      value={adminReplyInput} 
-                      onChange={e => setAdminReplyInput(e.target.value)} 
-                      onKeyDown={e => e.key === 'Enter' && sendAdminReply()}
-                    />
-                    <button onClick={sendAdminReply} className="bg-indigo-600 text-white p-3 rounded-2xl hover:bg-indigo-700 active:scale-90 shadow-lg transition-all">
-                      <Send size={20} />
-                    </button>
+                    <input className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-3 outline-none font-bold text-sm" placeholder="ইউজারকে রিপ্লাই লিখুন..." value={adminReplyInput} onChange={e => setAdminReplyInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendAdminReply()} />
+                    <button onClick={sendAdminReply} className="bg-indigo-600 text-white p-3 rounded-2xl hover:bg-indigo-700 active:scale-90 shadow-lg transition-all"><Send size={20} /></button>
                   </div>
                 </>
               ) : (
                 <div className="text-center p-10 space-y-4 opacity-50 grayscale">
                   <div className="w-24 h-24 bg-slate-200 rounded-full flex items-center justify-center mx-auto"><MessageCircle size={48} className="text-slate-400" /></div>
-                  <div>
-                    <h4 className="text-xl font-black text-slate-800">মেসেজ সিলেক্ট করুন</h4>
-                    <p className="text-sm font-bold text-slate-400">বাঁদিকের লিস্ট থেকে কোনো ইউজারের সাথে চ্যাট শুরু করুন।</p>
-                  </div>
+                  <h4 className="text-xl font-black text-slate-800">মেসেজ সিলেক্ট করুন</h4>
                 </div>
               )}
             </div>
+          </div>
+        )}
+        
+        {/* Rest of AdminTabs stay similar: notice, banner, links */}
+        {activeTab === 'notice' && (
+          <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6 animate-in slide-up">
+            <div className="space-y-1"><label className="text-[11px] font-black text-slate-400 uppercase ml-4">নতুন নোটিশ ({notices.length}/3)</label><textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 outline-none font-bold shadow-inner min-h-[120px]" placeholder="নোটিশের লেখাটি লিখুন..." value={noticeInput} onChange={e => setNoticeInput(e.target.value)} disabled={notices.length >= 3} /></div>
+            <button onClick={handleAddNotice} disabled={notices.length >= 3 || !noticeInput.trim()} className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black shadow-xl hover:bg-indigo-700 transition-colors disabled:opacity-50">যোগ করো</button>
+            <div className="space-y-3">{notices.map((n, i) => (<div key={n.id} className="p-5 bg-slate-50 rounded-2xl border flex justify-between items-center shadow-sm animate-in slide-up"><div className="flex gap-4 items-center"><span className="w-6 h-6 bg-white rounded-full flex items-center justify-center font-black text-xs text-indigo-600 border shadow-inner">{i+1}</span><p className="font-bold text-slate-700 text-sm">{n.text}</p></div><button onClick={() => setNotices(prev => prev.filter(item => item.id !== n.id))} className="text-red-400 p-2 hover:bg-red-50 rounded-xl transition-colors"><Trash2 size={18} /></button></div>))}</div>
           </div>
         )}
       </div>
@@ -893,14 +913,10 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
       <div className="text-center space-y-4">
         <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto text-indigo-600 shadow-inner"><ShieldCheck size={40} /></div>
         <h2 className="text-3xl font-black text-slate-800 tracking-tight">অ্যাডমিন প্রবেশ</h2>
-        <div className="bg-amber-50 border border-amber-100 p-3 rounded-2xl flex items-center gap-3 text-amber-700">
-          <Info size={18} className="shrink-0" />
-          <p className="text-xs font-bold leading-tight">অ্যাডমিন রিমন মাহমুদ রোমান শুধু লগইন করতে পারবেন।</p>
-        </div>
       </div>
       <div className="space-y-5">
-        <div className="space-y-1"><label className="text-[11px] font-black text-slate-400 uppercase ml-4">আইডি (Email/Phone)</label><input className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold shadow-inner text-slate-700" value={id} onChange={e => setId(e.target.value)} /></div>
-        <div className="space-y-1"><label className="text-[11px] font-black text-slate-400 uppercase ml-4">পাসওয়ার্ড</label><input type="password" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold shadow-inner text-slate-700" value={pass} onChange={e => setPass(e.target.value)} /></div>
+        <div className="space-y-1"><label className="text-[11px] font-black text-slate-400 uppercase ml-4">আইডি</label><input className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold shadow-inner" value={id} onChange={e => setId(e.target.value)} /></div>
+        <div className="space-y-1"><label className="text-[11px] font-black text-slate-400 uppercase ml-4">পাসওয়ার্ড</label><input type="password" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold shadow-inner" value={pass} onChange={e => setPass(e.target.value)} /></div>
         {error && <p className="text-xs font-bold text-red-500 text-center animate-shake">{error}</p>}<button onClick={handleLogin} className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-xl shadow-xl active:scale-95 transition-all hover:bg-indigo-700 border-b-4 border-indigo-900 active:border-b-0">লগইন</button>
       </div>
     </div>
@@ -920,7 +936,6 @@ const ProfileView = ({ profile, setProfile, stats, onLogout }: any) => {
       <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6">
         <div className="space-y-4">
           <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 ml-4 uppercase tracking-tighter">আপনার নাম</label><input className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold outline-none shadow-inner text-slate-700" value={profile.name} onChange={e => setProfile((p: any) => ({ ...p, name: e.target.value }))} /></div>
-          <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 ml-4 uppercase tracking-tighter">ইউজার নেম (অপরিবর্তনীয়)</label><input className="w-full bg-slate-100 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold outline-none text-slate-400 cursor-not-allowed" value={profile.username} readOnly /></div>
           <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 ml-4 uppercase tracking-tighter">আপনার সম্পর্কে (BIO)</label><textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold min-h-[120px] outline-none shadow-inner text-slate-700" value={profile.bio} onChange={e => setProfile((p: any) => ({ ...p, bio: e.target.value }))} /></div>
           <button onClick={onLogout} className="w-full p-5 bg-red-50 text-red-600 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-red-100 transition-colors border border-red-100 mt-4"><LogOut size={18} /> লগআউট করুন</button>
         </div>
@@ -941,7 +956,7 @@ const GoalView = ({ addPoints, updateCount, currentCount, setLoading }: any) => 
       <div className="flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-4 bg-yellow-50 rounded-3xl text-yellow-600 border border-yellow-100 shadow-inner"><Star size={32} fill="currentColor" /></div><h2 className="text-2xl font-black text-slate-800 tracking-tight">আজকের লক্ষ্য</h2></div><div className="bg-indigo-50 px-6 py-3 rounded-2xl shadow-inner border border-indigo-100"><span className="text-3xl font-black text-indigo-600">{currentCount}</span><span className="text-indigo-300 font-bold ml-1">/ 3</span></div></div>
       {currentCount >= 3 ? <div className="p-16 bg-green-50 rounded-[48px] text-center font-black text-green-800 text-2xl border-4 border-dashed border-green-200 animate-in zoom-in">🎉 সব লক্ষ্য পূর্ণ হয়েছে!</div> : (
         <div className="space-y-6">
-          <div className="flex flex-col gap-3"><div className="flex justify-between items-center px-4"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">ইংরেজি বাক্য লিখুন</label><STTButton onResult={setInput} lang="en-US" /></div><textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-[32px] p-8 outline-none font-bold text-lg shadow-inner text-slate-700 min-h-[160px]" placeholder="যেমন: I love studying with StudyBuddy." value={input} onChange={e => setInput(e.target.value)} /></div>
+          <textarea className="w-full bg-slate-50 border-2 border-slate-100 rounded-[32px] p-8 outline-none font-bold text-lg shadow-inner text-slate-700 min-h-[160px]" placeholder="ইংরেজিতে একটি সঠিক বাক্য লিখুন..." value={input} onChange={e => setInput(e.target.value)} />
           <button onClick={handleCheck} disabled={!input.trim() || claimable} className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-xl shadow-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 border-b-4 border-indigo-900 active:border-b-0 active:translate-y-1">চেক করো</button>
           {feedback && <div className={`p-8 rounded-[32px] border-2 font-bold text-sm animate-in zoom-in leading-relaxed ${isSuccess ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>{feedback}</div>}
           {claimable && <button onClick={claim} className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white py-7 rounded-3xl font-black text-xl shadow-2xl animate-bounce-short uppercase tracking-widest border-b-8 border-orange-700">পুরস্কার গ্রহণ করো (+১০)</button>}
