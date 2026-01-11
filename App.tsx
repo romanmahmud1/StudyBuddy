@@ -54,7 +54,8 @@ import {
   ShieldAlert,
   ShieldOff,
   Key,
-  Info
+  Info,
+  ChevronRight
 } from 'lucide-react';
 import { AppMode, UserProfile, HelpMessage, AdminProfile, StudyLink, Notice } from './types';
 import { 
@@ -460,7 +461,7 @@ const App: React.FC = () => {
         {mode === AppMode.SPEAKING && <SpeakingView setLoading={setLoading} />}
         {mode === AppMode.QA && <QAView setLoading={setLoading} />}
         {mode === AppMode.FRIEND_CHAT && <FriendChatView setLoading={setLoading} />}
-        {mode === AppMode.HELP_LINE && <HelpLineView helpMessages={helpMessages} setHelpMessages={setHelpMessages} userId={currentUser?.id || 'guest'} isAdmin={isAdmin} adminName={adminProfile.name} />}
+        {mode === AppMode.HELP_LINE && <HelpLineView helpMessages={helpMessages} setHelpMessages={setHelpMessages} userId={currentUser?.id || 'guest'} userName={currentUser?.name || 'User'} isAdmin={isAdmin} adminName={adminProfile.name} />}
         {mode === AppMode.ADMIN && <AdminPanel isAdmin={isAdmin} setIsAdmin={setIsAdmin} setMode={changeMode} helpMessages={helpMessages} setHelpMessages={setHelpMessages} adminProfile={adminProfile} setAdminProfile={setAdminProfile} notices={notices} setNotices={setNotices} studyLinks={studyLinks} setStudyLinks={setStudyLinks} homeBanner={homeBanner} setHomeBanner={setHomeBanner} homeBannerSize={homeBannerSize} setHomeBannerSize={setHomeBannerSize} allUsers={allUsers} setAllUsers={setAllUsers} />}
         {mode === AppMode.GOAL && <GoalView addPoints={addPoints} updateCount={updateChallengeCount} currentCount={currentUser?.dailyChallengeCount || 0} setLoading={setLoading} />}
         {mode === AppMode.PROFILE && <ProfileView profile={currentUser} setProfile={setCurrentUser} stats={userStats} onLogout={handleLogout} />}
@@ -596,11 +597,45 @@ const FriendChatView = ({ setLoading }: any) => {
   );
 };
 
-const HelpLineView = ({ helpMessages, setHelpMessages, userId, isAdmin, adminName }: any) => {
+const HelpLineView = ({ helpMessages, setHelpMessages, userId, userName, isAdmin, adminName }: any) => {
   const [input, setInput] = useState('');
-  const handleSendMessage = () => { if (!input.trim()) return; setHelpMessages((prev: any) => [...prev, { id: Date.now().toString(), userId, userName: isAdmin ? adminName : 'User', text: input, timestamp: Date.now(), isAdmin }]); setInput(''); };
+  const scrollRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [helpMessages]);
+
+  const handleSendMessage = () => { if (!input.trim()) return; setHelpMessages((prev: any) => [...prev, { id: Date.now().toString(), userId, userName: isAdmin ? adminName : userName, text: input, timestamp: Date.now(), isAdmin }]); setInput(''); };
+  
   return (
-    <div className="bg-white rounded-[48px] shadow-xl flex flex-col h-[600px] overflow-hidden border border-slate-100 animate-in slide-up"><div className="p-6 border-b bg-indigo-600 text-white flex items-center justify-between"><div className="flex items-center gap-3"><MessageCircle size={24} /><h3 className="font-black">হেল্প লাইন</h3></div><STTButton onResult={setInput} /></div><div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/30 custom-scrollbar">{helpMessages.filter((m: any) => isAdmin || m.userId === userId).map((msg: any) => (<div key={msg.id} className={`flex ${msg.isAdmin === isAdmin ? 'justify-end' : 'justify-start'} animate-in slide-up`}><div className={`max-w-[85%] p-4 rounded-[24px] font-bold text-sm shadow-sm ${msg.isAdmin === isAdmin ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'}`}><div className="text-[9px] font-black opacity-60 mb-1 uppercase tracking-tighter">{msg.userName}</div>{msg.text}</div></div>))}</div><div className="p-6 bg-white border-t flex gap-3 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]"><input className="flex-1 bg-slate-100 rounded-2xl px-6 py-4 outline-none font-bold shadow-inner" placeholder="মেসেজ..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendMessage()} /><button onClick={handleSendMessage} className="bg-indigo-600 text-white p-4 rounded-2xl hover:bg-indigo-700 active:scale-90 shadow-lg transition-all"><Send size={24} /></button></div></div>
+    <div className="bg-white rounded-[48px] shadow-xl flex flex-col h-[600px] overflow-hidden border border-slate-100 animate-in slide-up">
+      <div className="p-6 border-b bg-indigo-600 text-white flex items-center justify-between shadow-md">
+        <div className="flex items-center gap-3"><MessageCircle size={24} /><h3 className="font-black">হেল্প লাইন চ্যাট</h3></div>
+        <STTButton onResult={setInput} />
+      </div>
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/30 custom-scrollbar">
+        {helpMessages.filter((m: any) => isAdmin || m.userId === userId).map((msg: any) => (
+          <div key={msg.id} className={`flex ${msg.isAdmin === isAdmin ? 'justify-end' : 'justify-start'} animate-in slide-up`}>
+            <div className={`max-w-[85%] p-4 rounded-[24px] font-bold text-sm shadow-sm ${msg.isAdmin === isAdmin ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'}`}>
+              <div className="text-[9px] font-black opacity-60 mb-1 uppercase tracking-tighter">{msg.userName}</div>
+              {msg.text}
+            </div>
+          </div>
+        ))}
+        {helpMessages.filter((m: any) => isAdmin || m.userId === userId).length === 0 && (
+          <div className="flex flex-col items-center justify-center h-full text-slate-300 opacity-60 italic text-center px-10">
+            <div className="p-6 bg-slate-100 rounded-full mb-4"><MessageSquare size={48} /></div>
+            <p className="font-bold">এডমিনের সাথে সরাসরি কথা বলতে মেসেজ লিখুন।</p>
+          </div>
+        )}
+      </div>
+      <div className="p-6 bg-white border-t flex gap-3 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
+        <input className="flex-1 bg-slate-100 rounded-2xl px-6 py-4 outline-none font-bold shadow-inner" placeholder="এখানে মেসেজ লিখুন..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendMessage()} />
+        <button onClick={handleSendMessage} className="bg-indigo-600 text-white p-4 rounded-2xl hover:bg-indigo-700 active:scale-90 shadow-lg transition-all"><Send size={24} /></button>
+      </div>
+    </div>
   );
 };
 
@@ -616,6 +651,10 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
   const [linkT, setLinkT] = useState('');
   const [linkU, setLinkU] = useState('');
 
+  // Admin Chat State
+  const [selectedChatUserId, setSelectedChatUserId] = useState<string | null>(null);
+  const [adminReplyInput, setAdminReplyInput] = useState('');
+
   const handleLogin = () => (id === 'romantechgp@gmail.com' || id === '01617365471') && pass === '13457@Hunter' ? setIsAdmin(true) : setError('ভুল অ্যাডমিন তথ্য!');
   const handleAddNotice = () => { if (!noticeInput.trim() || notices.length >= 3) return; setNotices([{ id: Date.now().toString(), text: noticeInput, timestamp: Date.now() }, ...notices]); setNoticeInput(''); setPublishMsg('নোটিশ আপডেটেড!'); setTimeout(() => setPublishMsg(null), 3000); };
   const handleBanner = (e: any) => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onloadend = () => { setHomeBanner(r.result as string); setPublishMsg('ব্যানার আপডেটেড!'); setTimeout(() => setPublishMsg(null), 3000); }; r.readAsDataURL(f); } };
@@ -630,6 +669,42 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
     }
   };
 
+  const sendAdminReply = () => {
+    if (!adminReplyInput.trim() || !selectedChatUserId) return;
+    setHelpMessages((prev: HelpMessage[]) => [...prev, {
+      id: Date.now().toString(),
+      userId: selectedChatUserId,
+      userName: adminProfile.name,
+      text: adminReplyInput,
+      timestamp: Date.now(),
+      isAdmin: true
+    }]);
+    setAdminReplyInput('');
+  };
+
+  // Group help messages by userId for conversation list
+  const conversationGroups = useMemo(() => {
+    const groups: Record<string, { lastMessage: HelpMessage, count: number, userName: string }> = {};
+    helpMessages.forEach((m: HelpMessage) => {
+      if (!groups[m.userId] || m.timestamp > groups[m.userId].lastMessage.timestamp) {
+        // Find user name if it's an admin message, otherwise it's in the message
+        let userName = m.userName;
+        if (m.isAdmin) {
+          const userMsg = helpMessages.find(hm => hm.userId === m.userId && !hm.isAdmin);
+          if (userMsg) userName = userMsg.userName;
+        }
+        groups[m.userId] = { 
+          lastMessage: m, 
+          count: (groups[m.userId]?.count || 0) + 1,
+          userName: userName
+        };
+      } else {
+        groups[m.userId].count++;
+      }
+    });
+    return Object.entries(groups).sort((a, b) => b[1].lastMessage.timestamp - a[1].lastMessage.timestamp);
+  }, [helpMessages]);
+
   if (isAdmin) {
     const totalPoints = allUsers.reduce((a: number, u: any) => a + u.points, 0);
     const challengesToday = allUsers.reduce((a: number, u: any) => a + u.dailyChallengeCount, 0);
@@ -638,7 +713,7 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
         <div className="bg-red-50 border-l-8 border-red-500 p-6 rounded-2xl shadow-sm"><h4 className="text-red-700 font-black">অ্যাডমিন মোড: রিমন মাহমুদ রোমান</h4></div>
         <div className="bg-white p-6 rounded-[32px] shadow-sm flex gap-2 overflow-x-auto no-scrollbar border border-slate-100">
           {['dashboard', 'users', 'messages', 'notice', 'links', 'banner'].map((t: any) => (
-            <button key={t} onClick={() => setActiveTab(t)} className={`px-5 py-2 rounded-xl font-black text-xs uppercase tracking-widest whitespace-nowrap transition-all ${activeTab === t ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}>{t}</button>
+            <button key={t} onClick={() => { setActiveTab(t); if(t !== 'messages') setSelectedChatUserId(null); }} className={`px-5 py-2 rounded-xl font-black text-xs uppercase tracking-widest whitespace-nowrap transition-all ${activeTab === t ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}>{t}</button>
           ))}
           <button onClick={() => setIsAdmin(false)} className="bg-red-50 text-red-600 px-5 py-2 rounded-xl font-black text-xs uppercase ml-auto hover:bg-red-100 transition-colors">LOGOUT</button>
         </div>
@@ -720,10 +795,93 @@ const AdminPanel = ({ isAdmin, setIsAdmin, setMode, helpMessages, setHelpMessage
         )}
 
         {activeTab === 'messages' && (
-          <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar animate-in slide-up">
-            <h3 className="text-xl font-black text-slate-800 mb-4 px-2">সাপোর্ট ইনবক্স</h3>
-            {helpMessages.map((m: any) => (<div key={m.id} className={`p-6 rounded-[32px] border-2 animate-in slide-up ${m.isAdmin ? 'bg-slate-50 border-slate-100' : 'bg-white border-indigo-100 shadow-sm'}`}><div className="flex justify-between text-[10px] font-black uppercase text-indigo-600 mb-2 tracking-widest"><span>{m.userName}</span><span>{new Date(m.timestamp).toLocaleString()}</span></div><p className="font-bold text-slate-700 text-sm leading-relaxed">{m.text}</p>{!m.isAdmin && <button onClick={() => { const r = prompt(`${m.userName}-কে রিপ্লাই:`); if (r) setHelpMessages([...helpMessages, { id: Date.now().toString(), userId: m.userId, userName: adminProfile.name, text: r, timestamp: Date.now(), isAdmin: true }]); }} className="mt-4 text-[10px] font-black bg-indigo-600 text-white px-5 py-2 rounded-xl shadow-lg hover:bg-indigo-700 transition-all active:scale-95 uppercase tracking-widest">REPLY</button>}</div>))}
-            {helpMessages.length === 0 && <div className="text-center py-20 text-slate-300 italic font-bold">কোনো মেসেজ নেই</div>}
+          <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 h-[600px] flex overflow-hidden animate-in slide-up">
+            {/* Conversation List */}
+            <div className={`w-full md:w-80 border-r flex flex-col ${selectedChatUserId ? 'hidden md:flex' : 'flex'}`}>
+              <div className="p-6 border-b bg-slate-50">
+                <h3 className="text-lg font-black text-slate-800">চ্যাট লিস্ট</h3>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">সক্রিয় ইউজার কথোপকথন</p>
+              </div>
+              <div className="flex-1 overflow-y-auto custom-scrollbar">
+                {conversationGroups.map(([uid, data]) => (
+                  <button 
+                    key={uid} 
+                    onClick={() => setSelectedChatUserId(uid)}
+                    className={`w-full p-4 flex items-center gap-4 hover:bg-indigo-50 transition-colors border-b border-slate-50 text-left ${selectedChatUserId === uid ? 'bg-indigo-50 border-r-4 border-r-indigo-600' : ''}`}
+                  >
+                    <div className="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center font-black text-indigo-600 shrink-0 shadow-inner">
+                      {data.userName.charAt(0)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="font-black text-slate-800 text-sm truncate">{data.userName}</span>
+                        <span className="text-[9px] font-bold text-slate-400">{new Date(data.lastMessage.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                      </div>
+                      <p className="text-xs text-slate-500 truncate font-medium">{data.lastMessage.isAdmin ? "আপনি: " : ""}{data.lastMessage.text}</p>
+                    </div>
+                  </button>
+                ))}
+                {conversationGroups.length === 0 && (
+                  <div className="p-10 text-center text-slate-300 italic font-bold">কোনো মেসেজ নেই</div>
+                )}
+              </div>
+            </div>
+
+            {/* Individual Chat Window */}
+            <div className={`flex-1 flex flex-col ${!selectedChatUserId ? 'hidden md:flex items-center justify-center bg-slate-50/30' : 'flex'}`}>
+              {selectedChatUserId ? (
+                <>
+                  <div className="p-4 border-b bg-white flex items-center justify-between shadow-sm">
+                    <div className="flex items-center gap-4">
+                      <button onClick={() => setSelectedChatUserId(null)} className="p-2 hover:bg-slate-100 rounded-xl md:hidden">
+                        <ArrowLeft size={20} />
+                      </button>
+                      <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-black shadow-lg">
+                        {conversationGroups.find(g => g[0] === selectedChatUserId)?.[1].userName.charAt(0) || "U"}
+                      </div>
+                      <div>
+                        <h4 className="font-black text-slate-800">{conversationGroups.find(g => g[0] === selectedChatUserId)?.[1].userName}</h4>
+                        <p className="text-[9px] font-black text-green-500 uppercase tracking-widest">Active Chat</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                       <button onClick={() => confirm('চ্যাট ডিলিট?') && setHelpMessages(helpMessages.filter((m: HelpMessage) => m.userId !== selectedChatUserId))} className="p-2 text-red-400 hover:bg-red-50 rounded-xl"><Trash2 size={18} /></button>
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/20 custom-scrollbar">
+                    {helpMessages.filter((m: HelpMessage) => m.userId === selectedChatUserId).map((m: HelpMessage) => (
+                      <div key={m.id} className={`flex ${m.isAdmin ? 'justify-end' : 'justify-start'} animate-in slide-up`}>
+                        <div className={`max-w-[80%] p-4 rounded-[24px] font-bold text-sm shadow-sm ${m.isAdmin ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'}`}>
+                          <div className="text-[9px] font-black opacity-60 mb-1 uppercase tracking-tighter">{m.isAdmin ? "আপনি (Admin)" : m.userName}</div>
+                          {m.text}
+                          <div className="text-[8px] opacity-40 mt-1 text-right">{new Date(m.timestamp).toLocaleTimeString()}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="p-4 bg-white border-t flex gap-3 shadow-inner">
+                    <input 
+                      className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-3 outline-none font-bold text-sm" 
+                      placeholder="ইউজারকে রিপ্লাই লিখুন..." 
+                      value={adminReplyInput} 
+                      onChange={e => setAdminReplyInput(e.target.value)} 
+                      onKeyDown={e => e.key === 'Enter' && sendAdminReply()}
+                    />
+                    <button onClick={sendAdminReply} className="bg-indigo-600 text-white p-3 rounded-2xl hover:bg-indigo-700 active:scale-90 shadow-lg transition-all">
+                      <Send size={20} />
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center p-10 space-y-4 opacity-50 grayscale">
+                  <div className="w-24 h-24 bg-slate-200 rounded-full flex items-center justify-center mx-auto"><MessageCircle size={48} className="text-slate-400" /></div>
+                  <div>
+                    <h4 className="text-xl font-black text-slate-800">মেসেজ সিলেক্ট করুন</h4>
+                    <p className="text-sm font-bold text-slate-400">বাঁদিকের লিস্ট থেকে কোনো ইউজারের সাথে চ্যাট শুরু করুন।</p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
